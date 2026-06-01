@@ -1,0 +1,120 @@
+using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystem.Core.DTOs.Allocation;
+using ProjectManagementSystem.Core.Interfaces.Repositories;
+using ProjectManagementSystem.Infrastructure.Data;
+using ProjectManagementSystem.Infrastructure.Models;
+
+namespace ProjectManagementSystem.Infrastructure.Repositories;
+
+public class AllocationRepository(AppDbContext db) : IAllocationRepository
+{
+    public async Task<IEnumerable<AllocationDto>> GetAllActiveAsync()
+    {
+        var list = await db.Allocations
+            .Include(a => a.Employee)
+            .Include(a => a.Project)
+            .Where(a => a.IsActive)
+            .OrderBy(a => a.Employee.FullName)
+            .ToListAsync();
+
+        return list.Select(MapToDto);
+    }
+
+    public async Task<IEnumerable<AllocationDto>> GetAllAsync()
+    {
+        var list = await db.Allocations
+            .Include(a => a.Employee)
+            .Include(a => a.Project)
+            .OrderBy(a => a.Employee.FullName)
+            .ToListAsync();
+
+        return list.Select(MapToDto);
+    }
+
+    public async Task<IEnumerable<AllocationDto>> GetByEmployeeIdAsync(int employeeId)
+    {
+        var list = await db.Allocations
+            .Include(a => a.Employee)
+            .Include(a => a.Project)
+            .Where(a => a.EmployeeId == employeeId)
+            .OrderByDescending(a => a.FromDate)
+            .ToListAsync();
+
+        return list.Select(MapToDto);
+    }
+
+    public async Task<IEnumerable<AllocationDto>> GetByProjectIdAsync(int projectId)
+    {
+        var list = await db.Allocations
+            .Include(a => a.Employee)
+            .Include(a => a.Project)
+            .Where(a => a.ProjectId == projectId && a.IsActive)
+            .OrderBy(a => a.Employee.FullName)
+            .ToListAsync();
+
+        return list.Select(MapToDto);
+    }
+
+    public async Task<AllocationDto?> GetByIdAsync(int id)
+    {
+        var allocation = await db.Allocations
+            .Include(a => a.Employee)
+            .Include(a => a.Project)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        return allocation is null ? null : MapToDto(allocation);
+    }
+
+    public async Task<AllocationDto> CreateAsync(CreateAllocationDto dto)
+    {
+        var allocation = new Allocation
+        {
+            EmployeeId = dto.EmployeeId,
+            ProjectId = dto.ProjectId,
+            UtilisationPercent = dto.UtilisationPercent,
+            FromDate = dto.FromDate,
+            ToDate = dto.ToDate,
+            IsActive = true
+        };
+
+        db.Allocations.Add(allocation);
+        await db.SaveChangesAsync();
+
+        return (await GetByIdAsync(allocation.Id))!;
+    }
+
+    public async Task<AllocationDto> UpdateEndDateAsync(int id, DateOnly endDate)
+    {
+        var allocation = await db.Allocations.FindAsync(id)
+                         ?? throw new KeyNotFoundException($"Allocation {id} not found.");
+
+        allocation.ToDate = endDate;
+        if (endDate <= DateOnly.FromDateTime(DateTime.Today))
+            allocation.IsActive = false;
+
+        await db.SaveChangesAsync();
+        return (await GetByIdAsync(id))!;
+    }
+
+    public async Task<IEnumerable<int>> GetEmployeeIdsAllocatedBetweenAsync(DateOnly from, DateOnly to)
+    {
+        return await db.Allocations
+            .Where(a => a.IsActive && a.FromDate <= to && a.ToDate >= from)
+            .Select(a => a.EmployeeId)
+            .Distinct()
+            .ToListAsync();
+    }
+
+    private static AllocationDto MapToDto(Allocation a) => new()
+    {
+        Id = a.Id,
+        EmployeeId = a.EmployeeId,
+        EmployeeName = a.Employee.FullName,
+        ProjectId = a.ProjectId,
+        ProjectName = a.Project.Name,
+        UtilisationPercent = a.UtilisationPercent,
+        FromDate = a.FromDate,
+        ToDate = a.ToDate,
+        IsActive = a.IsActive
+    };
+}

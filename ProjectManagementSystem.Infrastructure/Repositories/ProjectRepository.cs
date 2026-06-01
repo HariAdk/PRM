@@ -1,0 +1,132 @@
+using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystem.Core.DTOs.Project;
+using ProjectManagementSystem.Core.Enums;
+using ProjectManagementSystem.Core.Interfaces.Repositories;
+using ProjectManagementSystem.Infrastructure.Data;
+using ProjectManagementSystem.Infrastructure.Models;
+
+namespace ProjectManagementSystem.Infrastructure.Repositories;
+
+public class ProjectRepository(AppDbContext db) : IProjectRepository
+{
+    public async Task<ProjectDto?> GetByIdAsync(int id)
+    {
+        var p = await db.Projects.Include(x => x.Manager).FirstOrDefaultAsync(x => x.Id == id);
+        return p is null ? null : MapToDto(p);
+    }
+
+    public async Task<IEnumerable<ProjectDto>> GetAllAsync()
+    {
+        var list = await db.Projects.Include(p => p.Manager).OrderBy(p => p.Name).ToListAsync();
+        return list.Select(MapToDto);
+    }
+
+    public async Task<IEnumerable<ProjectDto>> GetActiveAsync()
+    {
+        var list = await db.Projects
+            .Include(p => p.Manager)
+            .Where(p => p.Status == ProjectStatus.Active)
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+        return list.Select(MapToDto);
+    }
+
+    public async Task UpdateHealthStatusAsync(int projectId, ProjectHealth health)
+    {
+        var project = await db.Projects.FindAsync(projectId)
+                      ?? throw new KeyNotFoundException($"Project {projectId} not found.");
+        project.HealthStatus = health;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<ProjectDto> CreateAsync(CreateProjectDto dto)
+    {
+        var project = new Project
+        {
+            Name = dto.Name,
+            Description = dto.Description,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            Status = Enum.Parse<ProjectStatus>(dto.Status, ignoreCase: true),
+            ManagerId = dto.ManagerId,
+            HealthStatus = ProjectHealth.OnTrack
+        };
+        db.Projects.Add(project);
+        await db.SaveChangesAsync();
+        await db.Entry(project).Reference(p => p.Manager).LoadAsync();
+        return MapToDto(project);
+    }
+
+    public async Task<ProjectDto> UpdateAsync(int id, UpdateProjectDto dto)
+    {
+        var project = await db.Projects.Include(p => p.Manager).FirstOrDefaultAsync(p => p.Id == id)
+                      ?? throw new KeyNotFoundException($"Project {id} not found.");
+        project.Name = dto.Name;
+        project.Description = dto.Description;
+        project.StartDate = dto.StartDate;
+        project.EndDate = dto.EndDate;
+        project.Status = Enum.Parse<ProjectStatus>(dto.Status, ignoreCase: true);
+        project.ManagerId = dto.ManagerId;
+        await db.SaveChangesAsync();
+        await db.Entry(project).Reference(p => p.Manager).LoadAsync();
+        return MapToDto(project);
+    }
+
+    public async Task<IEnumerable<MilestoneDto>> GetMilestonesAsync(int projectId)
+    {
+        var milestones = await db.Milestones
+            .Where(m => m.ProjectId == projectId)
+            .OrderBy(m => m.DueDate)
+            .ToListAsync();
+        return milestones.Select(MapMilestoneToDto);
+    }
+
+    public async Task<MilestoneDto> AddMilestoneAsync(int projectId, CreateMilestoneDto dto)
+    {
+        var milestone = new Milestone
+        {
+            ProjectId = projectId,
+            Title = dto.Title,
+            DueDate = dto.DueDate,
+            Status = MilestoneStatus.NotStarted
+        };
+        db.Milestones.Add(milestone);
+        await db.SaveChangesAsync();
+        return MapMilestoneToDto(milestone);
+    }
+
+    public async Task<MilestoneDto> UpdateMilestoneStatusAsync(int projectId, int milestoneId, UpdateMilestoneStatusDto dto)
+    {
+        var milestone = await db.Milestones
+            .FirstOrDefaultAsync(m => m.Id == milestoneId && m.ProjectId == projectId)
+            ?? throw new KeyNotFoundException($"Milestone {milestoneId} not found.");
+        milestone.Status = Enum.Parse<MilestoneStatus>(dto.Status, ignoreCase: true);
+        await db.SaveChangesAsync();
+        return MapMilestoneToDto(milestone);
+    }
+
+    public async Task<bool> ManagerExistsAsync(int managerId) =>
+        await db.Users.AnyAsync(u => u.Id == managerId && u.Role == UserRole.Manager && u.IsActive);
+
+    private static ProjectDto MapToDto(Project p) => new()
+    {
+        Id = p.Id,
+        ManagerId = p.ManagerId,
+        ManagerName = p.Manager?.FullName ?? string.Empty,
+        Name = p.Name,
+        Description = p.Description,
+        StartDate = p.StartDate,
+        EndDate = p.EndDate,
+        Status = p.Status.ToString(),
+        HealthStatus = p.HealthStatus.ToString()
+    };
+
+    private static MilestoneDto MapMilestoneToDto(Milestone m) => new()
+    {
+        Id = m.Id,
+        ProjectId = m.ProjectId,
+        Title = m.Title,
+        DueDate = m.DueDate,
+        Status = m.Status.ToString()
+    };
+}

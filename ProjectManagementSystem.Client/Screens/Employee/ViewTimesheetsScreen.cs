@@ -1,0 +1,65 @@
+using ProjectManagementSystem.Client.Api;
+using ProjectManagementSystem.Client.Helpers;
+
+namespace ProjectManagementSystem.Client.Screens.Employee;
+
+/// <summary>Screen 5.2 — View My Timesheets</summary>
+public class ViewTimesheetsScreen(ApiClient api)
+{
+    public async Task ShowAsync()
+    {
+        Console.Clear();
+        ConsoleUI.DrawBox("MY TIMESHEETS");
+
+        var (timesheets, error) = await api.GetEmployeeTimesheetsAsync();
+        if (error is not null) { ConsoleUI.Error(error); ConsoleUI.PressAnyKey(); return; }
+
+        var list = timesheets?.ToList() ?? [];
+        if (list.Count == 0)
+        {
+            ConsoleUI.Info("No timesheets found.");
+            ConsoleUI.PressAnyKey();
+            return;
+        }
+
+        ConsoleUI.TableHeader("Week Start", "Total Hrs", "Status");
+        foreach (var t in list)
+        {
+            var statusDisplay = t.Status.ToString().ToUpperInvariant();
+            if (t.Status == Core.Enums.TimesheetStatus.Missed)
+                statusDisplay += "    \u26a0";
+            ConsoleUI.TableRow(
+                t.WeekStartDate.ToString("dd-MMM-yyyy"),
+                $"{t.TotalHours} hrs",
+                statusDisplay);
+        }
+
+        ConsoleUI.Divider();
+        ConsoleUI.ActionBar("[V] View week details", "[B] Back");
+        var opt = ConsoleUI.PromptOption();
+        if (opt.Equals("V", StringComparison.OrdinalIgnoreCase))
+            await ViewDetailAsync();
+    }
+
+    private async Task ViewDetailAsync()
+    {
+        var idStr = ConsoleUI.Prompt("Timesheet ID");
+        if (!int.TryParse(idStr, out var id)) { ConsoleUI.Error("Invalid ID."); ConsoleUI.PressAnyKey(); return; }
+
+        Console.Clear();
+
+        var (ts, error) = await api.GetEmployeeTimesheetAsync(id);
+        if (error is not null) { ConsoleUI.Error(error); ConsoleUI.PressAnyKey(); return; }
+        if (ts is null) return;
+
+        ConsoleUI.SubHeader($"Week: {ts.WeekStartDate:dd-MMM-yyyy} — Status: {ts.Status.ToString().ToUpperInvariant()}");
+        ConsoleUI.BlankLine();
+        ConsoleUI.TableHeader("Project", "Hrs", "Activity Tags");
+        foreach (var e in ts.Entries)
+            ConsoleUI.TableRow(e.ProjectName, e.Hours.ToString(), e.ActivityTags);
+        ConsoleUI.Divider();
+        Console.WriteLine($"Total: {ts.TotalHours} hrs");
+        ConsoleUI.ActionBar("[B] Back");
+        ConsoleUI.PromptOption();
+    }
+}
