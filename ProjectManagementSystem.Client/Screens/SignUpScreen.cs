@@ -5,7 +5,7 @@ using ProjectManagementSystem.Core.DTOs.Auth;
 namespace ProjectManagementSystem.Client.Screens;
 
 /// <summary>
-/// Screen 2 — Sign Up (Manager / Employee only)
+/// Screen 2 ï¿½ Sign Up (Manager / Employee only)
 /// </summary>
 public class SignUpScreen(ApiClient api)
 {

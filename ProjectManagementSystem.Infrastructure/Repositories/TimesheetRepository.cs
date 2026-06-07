@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.DTOs.Timesheet;
 using ProjectManagementSystem.Core.Enums;
@@ -7,29 +8,32 @@ using ProjectManagementSystem.Infrastructure.Models;
 
 namespace ProjectManagementSystem.Infrastructure.Repositories;
 
-public class TimesheetRepository(AppDbContext db) : ITimesheetRepository
+public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRepository
 {
     public async Task<IEnumerable<TimesheetDto>> GetByEmployeeIdAsync(int employeeId)
     {
-        return await db.Timesheets
+        var list = await db.Timesheets
             .Where(t => t.EmployeeId == employeeId)
             .Include(t => t.Employee)
             .Include(t => t.Entries)
                 .ThenInclude(e => e.Project)
-            .Select(t => MapToDto(t))
+            .OrderByDescending(t => t.WeekStartDate)
             .ToListAsync();
+
+        return mapper.Map<IEnumerable<TimesheetDto>>(list);
     }
 
     public async Task<IEnumerable<TimesheetDto>> GetByWeekStartAsync(DateTime weekStart)
     {
         var weekStartDate = DateOnly.FromDateTime(weekStart);
-        return await db.Timesheets
+        var list = await db.Timesheets
             .Where(t => t.WeekStartDate == weekStartDate)
             .Include(t => t.Employee)
             .Include(t => t.Entries)
                 .ThenInclude(e => e.Project)
-            .Select(t => MapToDto(t))
             .ToListAsync();
+
+        return mapper.Map<IEnumerable<TimesheetDto>>(list);
     }
 
     public async Task<IEnumerable<string>> GetRecentActivityTagsAsync(int employeeId, int count = 5)
@@ -51,7 +55,7 @@ public class TimesheetRepository(AppDbContext db) : ITimesheetRepository
                 .ThenInclude(e => e.Project)
             .FirstOrDefaultAsync(t => t.Id == timesheetId);
 
-        return timesheet == null ? null : MapToDto(timesheet);
+        return timesheet is null ? null : mapper.Map<TimesheetDto>(timesheet);
     }
 
     public async Task<TimesheetDto?> GetByEmployeeAndWeekAsync(int employeeId, DateTime weekStart)
@@ -63,7 +67,7 @@ public class TimesheetRepository(AppDbContext db) : ITimesheetRepository
                 .ThenInclude(e => e.Project)
             .FirstOrDefaultAsync(t => t.EmployeeId == employeeId && t.WeekStartDate == weekStartDate);
 
-        return timesheet is null ? null : MapToDto(timesheet);
+        return timesheet is null ? null : mapper.Map<TimesheetDto>(timesheet);
     }
 
     public async Task<bool> HasSubmittedForWeekAsync(int employeeId, DateTime weekStart)
@@ -90,14 +94,13 @@ public class TimesheetRepository(AppDbContext db) : ITimesheetRepository
 
         foreach (var entryDto in dto.Entries)
         {
-            var entry = new TimesheetEntry
+            db.TimesheetEntries.Add(new TimesheetEntry
             {
                 TimesheetId = timesheet.Id,
                 ProjectId = entryDto.ProjectId,
                 Hours = entryDto.Hours,
                 ActivityTags = entryDto.ActivityTags
-            };
-            db.TimesheetEntries.Add(entry);
+            });
         }
 
         await db.SaveChangesAsync();
@@ -108,7 +111,7 @@ public class TimesheetRepository(AppDbContext db) : ITimesheetRepository
     public async Task<bool> SubmitAsync(int timesheetId)
     {
         var timesheet = await db.Timesheets.FindAsync(timesheetId);
-        if (timesheet == null) return false;
+        if (timesheet is null) return false;
 
         timesheet.Status = TimesheetStatus.Submitted;
         timesheet.SubmittedAt = DateTime.UtcNow;
@@ -141,27 +144,34 @@ public class TimesheetRepository(AppDbContext db) : ITimesheetRepository
         await db.SaveChangesAsync();
     }
 
-    private static TimesheetDto MapToDto(Timesheet timesheet)
+    public async Task<TimesheetDto> ReplaceEntriesAndSubmitAsync(int timesheetId, CreateTimesheetDto dto)
     {
-        var weekEnd = timesheet.WeekStartDate.AddDays(6);
-        return new TimesheetDto
+        var timesheet = await db.Timesheets
+            .Include(t => t.Entries)
+            .FirstOrDefaultAsync(t => t.Id == timesheetId)
+            ?? throw new KeyNotFoundException($"Timesheet {timesheetId} not found.");
+
+        if (timesheet.Status == TimesheetStatus.Submitted)
+            throw new InvalidOperationException("A timesheet for this week has already been submitted.");
+
+        db.TimesheetEntries.RemoveRange(timesheet.Entries);
+
+        foreach (var entryDto in dto.Entries)
         {
-            TimesheetId = timesheet.Id,
-            EmployeeId = timesheet.EmployeeId,
-            EmployeeName = timesheet.Employee?.FullName ?? string.Empty,
-            WeekStartDate = timesheet.WeekStartDate.ToDateTime(TimeOnly.MinValue),
-            WeekEndDate = weekEnd.ToDateTime(TimeOnly.MinValue),
-            Status = timesheet.Status,
-            TotalHours = timesheet.TotalHours,
-            Entries = timesheet.Entries.Select(e => new TimesheetEntryDto
+            db.TimesheetEntries.Add(new TimesheetEntry
             {
-                EntryId = e.Id,
-                ProjectId = e.ProjectId,
-                ProjectName = e.Project?.Name ?? string.Empty,
-                Date = timesheet.WeekStartDate.ToDateTime(TimeOnly.MinValue),
-                Hours = e.Hours,
-                ActivityTags = e.ActivityTags
-            }).ToList()
-        };
+                TimesheetId = timesheet.Id,
+                ProjectId = entryDto.ProjectId,
+                Hours = entryDto.Hours,
+                ActivityTags = entryDto.ActivityTags
+            });
+        }
+
+        timesheet.TotalHours = dto.Entries.Sum(e => e.Hours);
+        timesheet.Status = TimesheetStatus.Submitted;
+        timesheet.SubmittedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return (await GetByIdAsync(timesheetId))!;
     }
 }

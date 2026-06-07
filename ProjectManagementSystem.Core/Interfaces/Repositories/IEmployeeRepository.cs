@@ -8,6 +8,8 @@ public interface IEmployeeRepository
     Task<EmployeeDto?> GetByIdAsync(int id);
     Task<EmployeeDto?> GetByUserIdAsync(int userId);
     Task<IEnumerable<EmployeeDto>> GetAllAsync();
+    Task<IEnumerable<EmployeeDto>> GetAllocatableResourcesAsync();
+    Task<bool> IsAllocatableResourceAsync(int employeeId);
     Task<EmployeeDto> CreateAsync(CreateEmployeeDto dto);
     Task<EmployeeDto> UpdateAsync(int id, UpdateEmployeeDto dto);
     Task DeactivateAsync(int id);

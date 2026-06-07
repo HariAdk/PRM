@@ -4,7 +4,7 @@ using ProjectManagementSystem.Core.DTOs.User;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.4 — Manage Users</summary>
+/// <summary>Screen 3.4 ï¿½ Manage Users</summary>
 public class ManageUsersScreen(ApiClient api)
 {
     public async Task ShowAsync()
@@ -76,12 +76,16 @@ public class ManageUsersScreen(ApiClient api)
 
         var list = users?.ToList() ?? [];
 
-        ConsoleUI.TableHeader("ID", "Username", "Role", "Status");
-        foreach (var u in list)
-        {
-            var status = u.IsActive ? "Active" : "Inactive";
-            ConsoleUI.TableRow(u.Id.ToString(), u.Username, u.Role, status);
-        }
+        ConsoleUI.RenderTable(
+            ["ID", "Username", "Role", "Status"],
+            list.Select(u => new[]
+            {
+                u.Id.ToString(),
+                u.Username,
+                u.Role,
+                u.IsActive ? "Active" : "Inactive"
+            }),
+            rightAlignColumnIndexes: [0]);
 
         ConsoleUI.Divider();
         var active = list.Count(u => u.IsActive);
@@ -102,7 +106,7 @@ public class ManageUsersScreen(ApiClient api)
         var user = users.FirstOrDefault(u => u.Id == id);
         if (user is null) { ConsoleUI.Error("User not found."); ConsoleUI.PressAnyKey(); return; }
 
-        Console.WriteLine($"\nUser: {user.FullName} ({user.Role}) — currently Inactive");
+        Console.WriteLine($"\nUser: {user.FullName} ({user.Role}) ï¿½ currently Inactive");
         Console.WriteLine("\nReactivate this account?");
         ConsoleUI.ActionBar("[Y] Yes", "[B] Cancel");
         if (ConsoleUI.PromptOption().ToUpper() != "Y") return;

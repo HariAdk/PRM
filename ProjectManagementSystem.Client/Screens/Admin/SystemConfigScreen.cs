@@ -4,7 +4,7 @@ using ProjectManagementSystem.Core.DTOs.Config;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.5 — System Configuration</summary>
+/// <summary>Screen 3.5 ï¿½ System Configuration</summary>
 public class SystemConfigScreen(ApiClient api)
 {
     public async Task ShowAsync()

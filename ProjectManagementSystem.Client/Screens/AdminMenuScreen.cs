@@ -6,7 +6,7 @@ using ProjectManagementSystem.Client.Screens.Admin;
 namespace ProjectManagementSystem.Client.Screens;
 
 /// <summary>
-/// Screen 3 — Admin Panel Main Menu
+/// Screen 3 ï¿½ Admin Panel Main Menu
 /// </summary>
 public class AdminMenuScreen(ApiClient api, SessionContext session)
 {

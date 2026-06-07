@@ -22,17 +22,21 @@ public class ViewTimesheetsScreen(ApiClient api)
             return;
         }
 
-        ConsoleUI.TableHeader("Week Start", "Total Hrs", "Status");
-        foreach (var t in list)
-        {
-            var statusDisplay = t.Status.ToString().ToUpperInvariant();
-            if (t.Status == Core.Enums.TimesheetStatus.Missed)
-                statusDisplay += "    \u26a0";
-            ConsoleUI.TableRow(
-                t.WeekStartDate.ToString("dd-MMM-yyyy"),
-                $"{t.TotalHours} hrs",
-                statusDisplay);
-        }
+        ConsoleUI.RenderTable(
+            ["Week Start", "Total Hrs", "Status"],
+            list.Select(t =>
+            {
+                var statusDisplay = t.Status.ToString().ToUpperInvariant();
+                if (t.Status == Core.Enums.TimesheetStatus.Missed)
+                    statusDisplay += "  \u26a0";
+                return new[]
+                {
+                    ConsoleUI.FormatDate(t.WeekStartDate),
+                    $"{t.TotalHours} hrs",
+                    statusDisplay
+                };
+            }),
+            rightAlignColumnIndexes: [1]);
 
         ConsoleUI.Divider();
         ConsoleUI.ActionBar("[V] View week details", "[B] Back");
@@ -54,9 +58,10 @@ public class ViewTimesheetsScreen(ApiClient api)
 
         ConsoleUI.SubHeader($"Week: {ts.WeekStartDate:dd-MMM-yyyy} — Status: {ts.Status.ToString().ToUpperInvariant()}");
         ConsoleUI.BlankLine();
-        ConsoleUI.TableHeader("Project", "Hrs", "Activity Tags");
-        foreach (var e in ts.Entries)
-            ConsoleUI.TableRow(e.ProjectName, e.Hours.ToString(), e.ActivityTags);
+        ConsoleUI.RenderTable(
+            ["Project", "Hrs", "Activity Tags"],
+            ts.Entries.Select(e => new[] { e.ProjectName, e.Hours.ToString(), e.ActivityTags }),
+            rightAlignColumnIndexes: [1]);
         ConsoleUI.Divider();
         Console.WriteLine($"Total: {ts.TotalHours} hrs");
         ConsoleUI.ActionBar("[B] Back");

@@ -73,13 +73,25 @@ public class AiAssistantScreen(ApiClient api)
         if (matches.Count == 0)
             ConsoleUI.Warning("No matches found.");
         else
+        {
+            ConsoleUI.RenderTable(
+                ["#", "Name", "Skills Match", "Availability", "Recent Activity"],
+                matches.Select((m, i) => new[]
+                {
+                    (i + 1).ToString(),
+                    m.Name,
+                    m.SkillsMatch,
+                    $"{m.AvailabilityPercentage}% free",
+                    m.RecentActivity
+                }),
+                rightAlignColumnIndexes: [0]);
+
             for (int i = 0; i < matches.Count; i++)
             {
-                var m = matches[i];
-                Console.WriteLine($"  {i + 1}.  {m.Name}");
-                Console.WriteLine($"      Reason: {m.Reason}");
+                Console.WriteLine($"      Reason: {matches[i].Reason}");
                 ConsoleUI.BlankLine();
             }
+        }
 
         ConsoleUI.Info("These are AI-generated suggestions. Always verify availability and skills with the employee before allocating.");
         ConsoleUI.ActionBar("[A] Go to Allocate Resource", "[B] Back");

@@ -4,7 +4,7 @@ using ProjectManagementSystem.Core.DTOs.Employee;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.1.4 — Manage Employee Skills</summary>
+/// <summary>Screen 3.1.4 ï¿½ Manage Employee Skills</summary>
 public class ManageSkillsScreen(ApiClient api)
 {
     private static readonly string[] Categories   = ["Backend", "Frontend", "DevOps", "QA", "Other"];

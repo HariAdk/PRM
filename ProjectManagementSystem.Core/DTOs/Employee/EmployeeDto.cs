@@ -1,4 +1,5 @@
 namespace ProjectManagementSystem.Core.DTOs.Employee;
+using ProjectManagementSystem.Core.Constants;
 
 public class EmployeeDto
 {
@@ -9,5 +10,10 @@ public class EmployeeDto
     public string Department { get; set; } = string.Empty;
     public string Designation { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public string UserRole { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+
+    /// <summary>Bench/allocated applies to individual contributors only — not delivery managers.</summary>
+    public bool IsAllocatableResource =>
+        UserRole.Equals(RoleNames.Employee, StringComparison.OrdinalIgnoreCase);
 }

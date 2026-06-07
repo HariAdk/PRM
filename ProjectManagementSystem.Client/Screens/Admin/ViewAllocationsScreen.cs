@@ -3,7 +3,7 @@ using ProjectManagementSystem.Client.Helpers;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.3 — View All Allocations</summary>
+/// <summary>Screen 3.3 â€” View All Allocations</summary>
 public class ViewAllocationsScreen(ApiClient api)
 {
     public async Task ShowAsync()
@@ -15,15 +15,7 @@ public class ViewAllocationsScreen(ApiClient api)
         if (error is not null) { ConsoleUI.Error(error); ConsoleUI.PressAnyKey(); return; }
 
         var list = allocations?.ToList() ?? [];
-
-        ConsoleUI.TableHeader("Employee", "Project", "%", "From", "To");
-        foreach (var a in list)
-            ConsoleUI.TableRow(
-                a.EmployeeName,
-                a.ProjectName,
-                $"{a.UtilisationPercent}%",
-                a.FromDate.ToString("dd-MMM-yy"),
-                a.ToDate.ToString("dd-MMM-yy"));
+        RenderAllocationTable(list);
 
         ConsoleUI.Divider();
         Console.WriteLine($"Total Active Allocations: {list.Count}");
@@ -32,6 +24,12 @@ public class ViewAllocationsScreen(ApiClient api)
 
         var opt = ConsoleUI.PromptOption();
         if (opt.ToUpper() == "F") await FilterAsync(list);
+    }
+
+    private static void RenderAllocationTable(IEnumerable<Core.DTOs.Allocation.AllocationDto> allocations)
+    {
+        ConsoleUI.RenderAllocationTable(
+            allocations.Select(a => (a.EmployeeName, a.ProjectName, a.UtilisationPercent, a.FromDate, a.ToDate)));
     }
 
     private async Task FilterAsync(List<Core.DTOs.Allocation.AllocationDto> list)
@@ -58,15 +56,7 @@ public class ViewAllocationsScreen(ApiClient api)
 
         Console.Clear();
         ConsoleUI.DrawBox("FILTERED ALLOCATIONS");
-        ConsoleUI.TableHeader("Employee", "Project", "%", "From", "To");
-        foreach (var a in filtered)
-            ConsoleUI.TableRow(
-                a.EmployeeName,
-                a.ProjectName,
-                $"{a.UtilisationPercent}%",
-                a.FromDate.ToString("dd-MMM-yy"),
-                a.ToDate.ToString("dd-MMM-yy"));
-
+        RenderAllocationTable(filtered);
         ConsoleUI.PressAnyKey();
     }
 }

@@ -14,4 +14,5 @@ public interface ITimesheetRepository
     Task<bool> SubmitAsync(int timesheetId);
     Task<bool> ExistsForEmployeeWeekAsync(int employeeId, DateTime weekStart);
     Task CreateMissedAsync(int employeeId, DateTime weekStart);
+    Task<TimesheetDto> ReplaceEntriesAndSubmitAsync(int timesheetId, CreateTimesheetDto dto);
 }

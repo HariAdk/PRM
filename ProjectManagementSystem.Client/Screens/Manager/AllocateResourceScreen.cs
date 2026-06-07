@@ -81,17 +81,17 @@ public class AllocateResourceScreen(ApiClient api)
             return;
         }
 
-        ConsoleUI.TableHeader("#", "Name", "Skills Match", "Availability", "Recent Activity");
-        for (int i = 0; i < matches.Count; i++)
-        {
-            var m = matches[i];
-            ConsoleUI.TableRow(
+        ConsoleUI.RenderTable(
+            ["#", "Name", "Skills Match", "Availability", "Recent Activity"],
+            matches.Select((m, i) => new[]
+            {
                 (i + 1).ToString(),
                 m.Name,
                 m.SkillsMatch,
                 $"{m.AvailabilityPercentage}% free",
-                m.RecentActivity);
-        }
+                m.RecentActivity
+            }),
+            rightAlignColumnIndexes: [0]);
 
         ConsoleUI.AiNote("Suggestions are AI-generated. Verify before confirming.");
         ConsoleUI.Divider();
@@ -191,17 +191,17 @@ public class AllocateResourceScreen(ApiClient api)
         }
 
         Console.WriteLine("\nActive Allocations on this project:");
-        ConsoleUI.TableHeader("#", "Employee", "%", "From", "To");
-        for (int i = 0; i < list.Count; i++)
-        {
-            var a = list[i];
-            ConsoleUI.TableRow(
+        ConsoleUI.RenderTable(
+            ["#", "Employee", "%", "From", "To"],
+            list.Select((a, i) => new[]
+            {
                 $"{i + 1}.",
                 a.EmployeeName,
-                $"{a.UtilisationPercent}%",
-                a.FromDate.ToString("dd-MMM-yy"),
-                a.ToDate.ToString("dd-MMM-yy"));
-        }
+                ConsoleUI.FormatPercent(a.UtilisationPercent),
+                ConsoleUI.FormatDate(a.FromDate),
+                ConsoleUI.FormatDate(a.ToDate)
+            }),
+            rightAlignColumnIndexes: [0, 2, 3, 4]);
 
         var selStr = ConsoleUI.Prompt("Select allocation to end");
         if (!int.TryParse(selStr, out var sel) || sel < 1 || sel > list.Count)

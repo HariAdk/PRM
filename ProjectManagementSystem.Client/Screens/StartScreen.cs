@@ -6,10 +6,10 @@ using ProjectManagementSystem.Core.DTOs.Auth;
 namespace ProjectManagementSystem.Client.Screens;
 
 /// <summary>
-/// Screen 1 ù Application Start / Login
+/// Screen 1 ÔøΩ Application Start / Login
 /// ????????????????????????????????????????????????
 /// ?    PROJECT & RESOURCE MANAGEMENT TOOL        ?
-/// ?    Learn & Code ù Final Project              ?
+/// ?    Learn & Code ÔøΩ Final Project              ?
 /// ????????????????????????????????????????????????
 /// </summary>
 public class StartScreen(ApiClient api, SessionContext session)
@@ -75,7 +75,7 @@ public class StartScreen(ApiClient api, SessionContext session)
         session.Set(data.UserId, data.FullName, data.Role, data.Token, data.ForcePasswordChange);
         api.SetToken(data.Token);
 
-        // Force password change ù cannot be skipped
+        // Force password change ÔøΩ cannot be skipped
         if (session.ForcePasswordChange)
         {
             var changed = await new ChangePasswordScreen(api, session).ShowAsync();

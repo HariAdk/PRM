@@ -5,7 +5,7 @@ using ProjectManagementSystem.Client.Screens.Employee;
 
 namespace ProjectManagementSystem.Client.Screens;
 
-/// <summary>Screen 5 — Employee Menu</summary>
+/// <summary>Screen 5 ï¿½ Employee Menu</summary>
 public class EmployeeMenuScreen(ApiClient api, SessionContext session)
 {
     public async Task ShowAsync()

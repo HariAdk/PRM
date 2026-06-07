@@ -1,10 +1,11 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Employee;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.1 — Manage Employees</summary>
+/// <summary>Screen 3.1 ï¿½ Manage Employees</summary>
 public class ManageEmployeesScreen(ApiClient api)
 {
     public async Task ShowAsync()
@@ -71,7 +72,13 @@ public class ManageEmployeesScreen(ApiClient api)
         });
 
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success($"Employee added with status BENCH. ID: {data!.Id}");
+        else
+        {
+            var msg = data!.UserRole.Equals(RoleNames.Manager, StringComparison.OrdinalIgnoreCase)
+                ? $"Manager profile linked. ID: {data.Id}"
+                : $"Employee added with status BENCH. ID: {data.Id}";
+            ConsoleUI.Success(msg);
+        }
 
         ConsoleUI.PressAnyKey();
     }
@@ -86,17 +93,15 @@ public class ManageEmployeesScreen(ApiClient api)
 
         var list = employees?.ToList() ?? [];
 
-        ConsoleUI.TableHeader("ID", "Name", "Department", "Status");
-        foreach (var e in list)
-            ConsoleUI.TableRow(
-                e.Id.ToString(),
-                e.FullName,
-                e.Department,
-                ConsoleUI.StatusUpper(e.Status));
+        RenderEmployeeTable(list);
 
         ConsoleUI.Divider();
-        var allocated = list.Count(e => e.Status.Equals("Allocated", StringComparison.OrdinalIgnoreCase));
-        Console.WriteLine($"Total: {list.Count}   |   Allocated: {allocated}   |   Bench: {list.Count - allocated}");
+        var resources = list.Where(e => e.IsAllocatableResource).ToList();
+        var allocated = resources.Count(e => e.Status.Equals(nameof(Core.Enums.EmployeeStatus.Allocated), StringComparison.OrdinalIgnoreCase));
+        var bench = resources.Count - allocated;
+        var managers = list.Count(e => !e.IsAllocatableResource);
+        Console.WriteLine($"Total: {list.Count}   |   Allocated: {allocated}   |   Bench: {bench}" +
+                          (managers > 0 ? $"   |   Managers (N/A): {managers}" : string.Empty));
         ConsoleUI.BlankLine();
         ConsoleUI.ActionBar("[F] Filter by Status / Department", "[B] Back");
 
@@ -117,7 +122,9 @@ public class ManageEmployeesScreen(ApiClient api)
         if (opt == "1")
         {
             var status = ConsoleUI.Prompt("Status (Bench / Allocated)");
-            filtered = list.Where(e => e.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
+            filtered = list.Where(e =>
+                e.IsAllocatableResource &&
+                e.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
         }
         else if (opt == "2")
         {
@@ -128,15 +135,24 @@ public class ManageEmployeesScreen(ApiClient api)
 
         Console.Clear();
         ConsoleUI.DrawBox("FILTERED EMPLOYEES");
-        ConsoleUI.TableHeader("ID", "Name", "Department", "Status");
-        foreach (var e in filtered)
-            ConsoleUI.TableRow(
-                e.Id.ToString(),
-                e.FullName,
-                e.Department,
-                ConsoleUI.StatusUpper(e.Status));
+        RenderEmployeeTable(filtered);
 
         ConsoleUI.PressAnyKey();
+    }
+
+    private static void RenderEmployeeTable(IEnumerable<EmployeeDto> employees)
+    {
+        ConsoleUI.RenderTable(
+            ["ID", "Name", "Role", "Department", "Status"],
+            employees.Select(e => new[]
+            {
+                e.Id.ToString(),
+                e.FullName,
+                ConsoleUI.StatusUpper(e.UserRole),
+                e.Department,
+                EmployeeAvailabilityLabels.ProfileStatus(e.UserRole, e.Status)
+            }),
+            rightAlignColumnIndexes: [0]);
     }
 
     private async Task UpdateEmployeeAsync()

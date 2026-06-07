@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.DTOs.Employee;
 using ProjectManagementSystem.Core.Enums;
@@ -7,53 +8,73 @@ using ProjectManagementSystem.Infrastructure.Models;
 
 namespace ProjectManagementSystem.Infrastructure.Repositories;
 
-public class EmployeeRepository(AppDbContext db) : IEmployeeRepository
+public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepository
 {
     public async Task<EmployeeDto?> GetByIdAsync(int id)
     {
-        var e = await db.Employees.FindAsync(id);
-        return e is null ? null : MapToDto(e);
+        var e = await db.Employees.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == id);
+        return e is null ? null : mapper.Map<EmployeeDto>(e);
     }
 
     public async Task<EmployeeDto?> GetByUserIdAsync(int userId)
     {
         var e = await db.Employees.FirstOrDefaultAsync(x => x.UserId == userId);
-        return e is null ? null : MapToDto(e);
+        return e is null ? null : mapper.Map<EmployeeDto>(e);
     }
 
     public async Task<IEnumerable<EmployeeDto>> GetAllAsync()
     {
-        var list = await db.Employees.Where(e => e.IsActive).OrderBy(e => e.FullName).ToListAsync();
-        return list.Select(MapToDto);
+        var list = await db.Employees
+            .Include(e => e.User)
+            .Where(e => e.IsActive)
+            .OrderBy(e => e.FullName)
+            .ToListAsync();
+
+        return mapper.Map<IEnumerable<EmployeeDto>>(list);
     }
+
+    /// <summary>
+    /// Active employees whose user account has role Employee — individual contributors
+    /// eligible for project allocation (Resource Dashboard, AI skill match).
+    /// </summary>
+    public async Task<IEnumerable<EmployeeDto>> GetAllocatableResourcesAsync()
+    {
+        var list = await db.Employees
+            .Include(e => e.User)
+            .Where(e => e.IsActive && e.User.Role == UserRole.Employee)
+            .OrderBy(e => e.FullName)
+            .ToListAsync();
+
+        return mapper.Map<IEnumerable<EmployeeDto>>(list);
+    }
+
+    public async Task<bool> IsAllocatableResourceAsync(int employeeId) =>
+        await db.Employees
+            .Include(e => e.User)
+            .AnyAsync(e => e.Id == employeeId && e.IsActive && e.User.Role == UserRole.Employee);
 
     public async Task<EmployeeDto> CreateAsync(CreateEmployeeDto dto)
     {
-        var employee = new Employee
-        {
-            UserId = dto.UserId,
-            FullName = dto.FullName,
-            Email = dto.Email,
-            Department = dto.Department,
-            Designation = dto.Designation,
-            Status = EmployeeStatus.Bench,
-            IsActive = true
-        };
+        var employee = mapper.Map<Employee>(dto);
         db.Employees.Add(employee);
         await db.SaveChangesAsync();
-        return MapToDto(employee);
+
+        var created = await db.Employees.Include(e => e.User).FirstAsync(e => e.Id == employee.Id);
+        return mapper.Map<EmployeeDto>(created);
     }
 
     public async Task<EmployeeDto> UpdateAsync(int id, UpdateEmployeeDto dto)
     {
-        var employee = await db.Employees.FindAsync(id)
-                       ?? throw new KeyNotFoundException($"Employee {id} not found.");
+        var employee = await db.Employees
+            .Include(e => e.User)
+            .FirstOrDefaultAsync(e => e.Id == id)
+            ?? throw new KeyNotFoundException($"Employee {id} not found."); ;
         employee.FullName = dto.FullName;
         employee.Email = dto.Email;
         employee.Department = dto.Department;
         employee.Designation = dto.Designation;
         await db.SaveChangesAsync();
-        return MapToDto(employee);
+        return mapper.Map<EmployeeDto>(employee);
     }
 
     public async Task DeactivateAsync(int id)
@@ -61,7 +82,6 @@ public class EmployeeRepository(AppDbContext db) : IEmployeeRepository
         var employee = await db.Employees.FindAsync(id)
                        ?? throw new KeyNotFoundException($"Employee {id} not found.");
 
-        // End all active allocations
         var activeAllocations = await db.Allocations
             .Where(a => a.EmployeeId == id && a.IsActive)
             .ToListAsync();
@@ -75,7 +95,6 @@ public class EmployeeRepository(AppDbContext db) : IEmployeeRepository
         employee.IsActive = false;
         employee.Status = EmployeeStatus.Bench;
 
-        // Block linked user account
         var user = await db.Users.FindAsync(employee.UserId);
         if (user is not null) user.IsActive = false;
 
@@ -95,16 +114,4 @@ public class EmployeeRepository(AppDbContext db) : IEmployeeRepository
         employee.Status = status;
         await db.SaveChangesAsync();
     }
-
-    private static EmployeeDto MapToDto(Employee e) => new()
-    {
-        Id = e.Id,
-        UserId = e.UserId,
-        FullName = e.FullName,
-        Email = e.Email,
-        Department = e.Department,
-        Designation = e.Designation,
-        Status = e.Status.ToString(),
-        IsActive = e.IsActive
-    };
 }

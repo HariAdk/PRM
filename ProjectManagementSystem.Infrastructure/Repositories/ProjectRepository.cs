@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.DTOs.Project;
 using ProjectManagementSystem.Core.Enums;
@@ -7,18 +8,18 @@ using ProjectManagementSystem.Infrastructure.Models;
 
 namespace ProjectManagementSystem.Infrastructure.Repositories;
 
-public class ProjectRepository(AppDbContext db) : IProjectRepository
+public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectRepository
 {
     public async Task<ProjectDto?> GetByIdAsync(int id)
     {
         var p = await db.Projects.Include(x => x.Manager).FirstOrDefaultAsync(x => x.Id == id);
-        return p is null ? null : MapToDto(p);
+        return p is null ? null : mapper.Map<ProjectDto>(p);
     }
 
     public async Task<IEnumerable<ProjectDto>> GetAllAsync()
     {
         var list = await db.Projects.Include(p => p.Manager).OrderBy(p => p.Name).ToListAsync();
-        return list.Select(MapToDto);
+        return mapper.Map<IEnumerable<ProjectDto>>(list);
     }
 
     public async Task<IEnumerable<ProjectDto>> GetActiveAsync()
@@ -28,7 +29,7 @@ public class ProjectRepository(AppDbContext db) : IProjectRepository
             .Where(p => p.Status == ProjectStatus.Active)
             .OrderBy(p => p.Name)
             .ToListAsync();
-        return list.Select(MapToDto);
+        return mapper.Map<IEnumerable<ProjectDto>>(list);
     }
 
     public async Task UpdateHealthStatusAsync(int projectId, ProjectHealth health)
@@ -54,7 +55,7 @@ public class ProjectRepository(AppDbContext db) : IProjectRepository
         db.Projects.Add(project);
         await db.SaveChangesAsync();
         await db.Entry(project).Reference(p => p.Manager).LoadAsync();
-        return MapToDto(project);
+        return mapper.Map<ProjectDto>(project);
     }
 
     public async Task<ProjectDto> UpdateAsync(int id, UpdateProjectDto dto)
@@ -69,7 +70,7 @@ public class ProjectRepository(AppDbContext db) : IProjectRepository
         project.ManagerId = dto.ManagerId;
         await db.SaveChangesAsync();
         await db.Entry(project).Reference(p => p.Manager).LoadAsync();
-        return MapToDto(project);
+        return mapper.Map<ProjectDto>(project);
     }
 
     public async Task<IEnumerable<MilestoneDto>> GetMilestonesAsync(int projectId)
@@ -78,21 +79,16 @@ public class ProjectRepository(AppDbContext db) : IProjectRepository
             .Where(m => m.ProjectId == projectId)
             .OrderBy(m => m.DueDate)
             .ToListAsync();
-        return milestones.Select(MapMilestoneToDto);
+        return mapper.Map<IEnumerable<MilestoneDto>>(milestones);
     }
 
     public async Task<MilestoneDto> AddMilestoneAsync(int projectId, CreateMilestoneDto dto)
     {
-        var milestone = new Milestone
-        {
-            ProjectId = projectId,
-            Title = dto.Title,
-            DueDate = dto.DueDate,
-            Status = MilestoneStatus.NotStarted
-        };
+        var milestone = mapper.Map<Milestone>(dto);
+        milestone.ProjectId = projectId;
         db.Milestones.Add(milestone);
         await db.SaveChangesAsync();
-        return MapMilestoneToDto(milestone);
+        return mapper.Map<MilestoneDto>(milestone);
     }
 
     public async Task<MilestoneDto> UpdateMilestoneStatusAsync(int projectId, int milestoneId, UpdateMilestoneStatusDto dto)
@@ -102,31 +98,9 @@ public class ProjectRepository(AppDbContext db) : IProjectRepository
             ?? throw new KeyNotFoundException($"Milestone {milestoneId} not found.");
         milestone.Status = Enum.Parse<MilestoneStatus>(dto.Status, ignoreCase: true);
         await db.SaveChangesAsync();
-        return MapMilestoneToDto(milestone);
+        return mapper.Map<MilestoneDto>(milestone);
     }
 
     public async Task<bool> ManagerExistsAsync(int managerId) =>
         await db.Users.AnyAsync(u => u.Id == managerId && u.Role == UserRole.Manager && u.IsActive);
-
-    private static ProjectDto MapToDto(Project p) => new()
-    {
-        Id = p.Id,
-        ManagerId = p.ManagerId,
-        ManagerName = p.Manager?.FullName ?? string.Empty,
-        Name = p.Name,
-        Description = p.Description,
-        StartDate = p.StartDate,
-        EndDate = p.EndDate,
-        Status = p.Status.ToString(),
-        HealthStatus = p.HealthStatus.ToString()
-    };
-
-    private static MilestoneDto MapMilestoneToDto(Milestone m) => new()
-    {
-        Id = m.Id,
-        ProjectId = m.ProjectId,
-        Title = m.Title,
-        DueDate = m.DueDate,
-        Status = m.Status.ToString()
-    };
 }

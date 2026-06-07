@@ -23,17 +23,17 @@ public class ViewMyAllocationsScreen(ApiClient api)
             return;
         }
 
-        ConsoleUI.TableHeader("Project", "%", "From", "To", "Status");
-        foreach (var a in allocations)
-        {
-            var status = a.IsActive ? "ACTIVE" : "ENDED";
-            ConsoleUI.TableRow(
+        ConsoleUI.RenderTable(
+            ["Project", "%", "From", "To", "Status"],
+            allocations.Select(a => new[]
+            {
                 a.ProjectName,
-                $"{a.UtilisationPercent}%",
-                a.FromDate.ToString("dd-MMM-yy"),
-                a.ToDate.ToString("dd-MMM-yy"),
-                status);
-        }
+                ConsoleUI.FormatPercent(a.UtilisationPercent),
+                ConsoleUI.FormatDate(a.FromDate),
+                ConsoleUI.FormatDate(a.ToDate),
+                a.IsActive ? "ACTIVE" : "ENDED"
+            }),
+            rightAlignColumnIndexes: [1, 2, 3]);
 
         ConsoleUI.Divider();
         Console.WriteLine($"Total Utilisation: {profile.TotalUtilisation}%");

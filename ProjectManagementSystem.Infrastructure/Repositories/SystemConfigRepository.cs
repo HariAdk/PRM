@@ -1,17 +1,17 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.DTOs.Config;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Infrastructure.Data;
-using ProjectManagementSystem.Infrastructure.Models;
 
 namespace ProjectManagementSystem.Infrastructure.Repositories;
 
-public class SystemConfigRepository(AppDbContext db) : ISystemConfigRepository
+public class SystemConfigRepository(AppDbContext db, IMapper mapper) : ISystemConfigRepository
 {
     public async Task<SystemConfigDto?> GetAsync()
     {
         var config = await db.SystemConfigs.FirstOrDefaultAsync();
-        return config is null ? null : MapToDto(config);
+        return config is null ? null : mapper.Map<SystemConfigDto>(config);
     }
 
     public async Task UpdateAsync(SystemConfigDto dto)
@@ -24,12 +24,4 @@ public class SystemConfigRepository(AppDbContext db) : ISystemConfigRepository
         config.MaxWeeklyHours = dto.MaxWeeklyHours;
         await db.SaveChangesAsync();
     }
-
-    private static SystemConfigDto MapToDto(SystemConfig c) => new()
-    {
-        LlmProvider = c.LlmProvider,
-        LlmApiKey = c.LlmApiKey,
-        SchedulerIntervalHours = c.SchedulerIntervalHours,
-        MaxWeeklyHours = c.MaxWeeklyHours
-    };
 }

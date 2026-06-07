@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.DTOs.Employee;
 using ProjectManagementSystem.Core.Enums;
@@ -7,7 +8,7 @@ using ProjectManagementSystem.Infrastructure.Models;
 
 namespace ProjectManagementSystem.Infrastructure.Repositories;
 
-public class SkillRepository(AppDbContext db) : ISkillRepository
+public class SkillRepository(AppDbContext db, IMapper mapper) : ISkillRepository
 {
     public async Task<IEnumerable<EmployeeSkillDto>> GetSkillsByEmployeeAsync(int employeeId)
     {
@@ -15,7 +16,7 @@ public class SkillRepository(AppDbContext db) : ISkillRepository
             .Include(es => es.Skill)
             .Where(es => es.EmployeeId == employeeId)
             .ToListAsync();
-        return skills.Select(MapToDto);
+        return mapper.Map<IEnumerable<EmployeeSkillDto>>(skills);
     }
 
     public async Task<EmployeeSkillDto> AddSkillAsync(int employeeId, AddSkillDto dto)
@@ -45,7 +46,7 @@ public class SkillRepository(AppDbContext db) : ISkillRepository
         db.EmployeeSkills.Add(es);
         await db.SaveChangesAsync();
         es.Skill = skill;
-        return MapToDto(es);
+        return mapper.Map<EmployeeSkillDto>(es);
     }
 
     public async Task<EmployeeSkillDto> UpdateSkillAsync(int employeeId, int skillId, UpdateSkillDto dto)
@@ -57,7 +58,7 @@ public class SkillRepository(AppDbContext db) : ISkillRepository
 
         es.ProficiencyLevel = Enum.Parse<ProficiencyLevel>(dto.ProficiencyLevel, ignoreCase: true);
         await db.SaveChangesAsync();
-        return MapToDto(es);
+        return mapper.Map<EmployeeSkillDto>(es);
     }
 
     public async Task RemoveSkillAsync(int employeeId, int skillId)
@@ -69,13 +70,4 @@ public class SkillRepository(AppDbContext db) : ISkillRepository
         db.EmployeeSkills.Remove(es);
         await db.SaveChangesAsync();
     }
-
-    private static EmployeeSkillDto MapToDto(EmployeeSkill es) => new()
-    {
-        Id = es.Id,
-        SkillId = es.SkillId,
-        SkillName = es.Skill.Name,
-        Category = es.Skill.Category.ToString(),
-        ProficiencyLevel = es.ProficiencyLevel.ToString()
-    };
 }

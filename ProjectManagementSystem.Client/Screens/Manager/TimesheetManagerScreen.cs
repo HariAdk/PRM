@@ -26,22 +26,27 @@ public class TimesheetManagerScreen(ApiClient api)
         if (data is null) { ConsoleUI.Error("No data returned."); ConsoleUI.PressAnyKey(); return; }
 
         ConsoleUI.Divider();
-        ConsoleUI.TableHeader("Employee", "Project", "Hrs", "Status");
-
+        var rows = new List<string[]>();
         foreach (var t in data.Submitted)
         {
             var status = t.Status.ToString().ToUpperInvariant();
             if (t.Entries.Count == 0)
             {
-                ConsoleUI.TableRow(t.EmployeeName, "-", t.TotalHours.ToString(), status);
+                rows.Add([t.EmployeeName, "-", t.TotalHours.ToString(), status]);
                 continue;
             }
+
             foreach (var e in t.Entries)
-                ConsoleUI.TableRow(t.EmployeeName, e.ProjectName, e.Hours.ToString(), status);
+                rows.Add([t.EmployeeName, e.ProjectName, e.Hours.ToString(), status]);
         }
 
         foreach (var m in data.Missing)
-            ConsoleUI.TableRow(m.EmployeeName, m.ProjectName, "0", "MISSED");
+            rows.Add([m.EmployeeName, m.ProjectName, "0", "MISSED"]);
+
+        ConsoleUI.RenderTable(
+            ["Employee", "Project", "Hrs", "Status"],
+            rows,
+            rightAlignColumnIndexes: [2]);
 
         ConsoleUI.Divider();
         ConsoleUI.ActionBar("[V] View employee timesheet detail", "[B] Back");
@@ -62,15 +67,16 @@ public class TimesheetManagerScreen(ApiClient api)
         if (error is not null) { ConsoleUI.Error(error); ConsoleUI.PressAnyKey(); return; }
         if (ts is null) return;
 
-        Console.WriteLine($"Employee:  {ts.EmployeeName}");
-        Console.WriteLine($"Week:      {ts.WeekStartDate:dd-MMM-yyyy} - {ts.WeekEndDate:dd-MMM-yyyy}");
-        Console.WriteLine($"Status:    {ts.Status.ToString().ToUpperInvariant()}");
-        Console.WriteLine($"Total:     {ts.TotalHours} hrs");
+        ConsoleUI.KeyValue("Employee", ts.EmployeeName);
+        ConsoleUI.KeyValue("Week", $"{ts.WeekStartDate:dd-MMM-yyyy} - {ts.WeekEndDate:dd-MMM-yyyy}");
+        ConsoleUI.KeyValue("Status", ts.Status.ToString().ToUpperInvariant());
+        ConsoleUI.KeyValue("Total", $"{ts.TotalHours} hrs");
         ConsoleUI.Divider();
 
-        ConsoleUI.TableHeader("Project", "Hours", "Activity Tags");
-        foreach (var e in ts.Entries)
-            ConsoleUI.TableRow(e.ProjectName, e.Hours.ToString(), e.ActivityTags);
+        ConsoleUI.RenderTable(
+            ["Project", "Hours", "Activity Tags"],
+            ts.Entries.Select(e => new[] { e.ProjectName, e.Hours.ToString(), e.ActivityTags }),
+            rightAlignColumnIndexes: [1]);
 
         ConsoleUI.ActionBar("[B] Back");
         ConsoleUI.PromptOption();

@@ -30,8 +30,8 @@ public class SubmitTimesheetScreen(ApiClient api)
         Console.Clear();
         ConsoleUI.DrawBox("SUBMIT TIMESHEET");
 
-        Console.WriteLine($"Employee  : {context.EmployeeName}");
-        Console.WriteLine($"Week      : {context.WeekStart:dd-MMM-yyyy} - {context.WeekEnd:dd-MMM-yyyy}");
+        ConsoleUI.KeyValue("Employee", context.EmployeeName);
+        ConsoleUI.KeyValue("Week", $"{context.WeekStart:dd-MMM-yyyy} - {context.WeekEnd:dd-MMM-yyyy}");
 
         if (context.AlreadySubmitted)
         {
@@ -77,13 +77,16 @@ public class SubmitTimesheetScreen(ApiClient api)
         var total = entries.Sum(e => e.Hours);
         ConsoleUI.Divider();
         ConsoleUI.SubHeader("SUMMARY");
-        foreach (var entry in entries)
-        {
-            var name = context.Allocations.First(a => a.ProjectId == entry.ProjectId).ProjectName;
-            Console.WriteLine($"  {name,-16} {entry.Hours,5} hrs    [{entry.ActivityTags}]");
-        }
+        ConsoleUI.RenderTable(
+            ["Project", "Hours", "Activity Tags"],
+            entries.Select(entry =>
+            {
+                var name = context.Allocations.First(a => a.ProjectId == entry.ProjectId).ProjectName;
+                return new[] { name, $"{entry.Hours} hrs", entry.ActivityTags };
+            }),
+            rightAlignColumnIndexes: [1]);
         ConsoleUI.Divider();
-        Console.WriteLine($"  Total           {total,5} hrs / {context.MaxWeeklyHours} hrs max");
+        Console.WriteLine($"  {"Total".PadRight(18)} {($"{total} hrs / {context.MaxWeeklyHours} hrs max").PadLeft(8)}");
 
         if (total > context.MaxWeeklyHours)
         {

@@ -22,9 +22,16 @@ public class ResourceDashboardScreen(ApiClient api)
             Console.WriteLine("(none)");
         else
         {
-            ConsoleUI.TableHeader("ID", "Name", "Department", "Skills");
-            foreach (var e in dashboard.BenchEmployees)
-                ConsoleUI.TableRow(e.EmployeeId.ToString(), e.Name, e.Department, e.Skills);
+            ConsoleUI.RenderTable(
+                ["ID", "Name", "Department", "Skills"],
+                dashboard.BenchEmployees.Select(e => new[]
+                {
+                    e.EmployeeId.ToString(),
+                    e.Name,
+                    e.Department,
+                    e.Skills
+                }),
+                rightAlignColumnIndexes: [0]);
         }
 
         ConsoleUI.BlankLine();
@@ -34,13 +41,16 @@ public class ResourceDashboardScreen(ApiClient api)
             Console.WriteLine("(none)");
         else
         {
-            ConsoleUI.TableHeader("ID", "Name", "Alloc %", "Availability");
-            foreach (var e in dashboard.ActiveEmployees)
-                ConsoleUI.TableRow(
+            ConsoleUI.RenderTable(
+                ["ID", "Name", "Alloc %", "Availability"],
+                dashboard.ActiveEmployees.Select(e => new[]
+                {
                     e.EmployeeId.ToString(),
                     e.Name,
-                    $"{e.AllocationPercentage}%",
-                    e.AvailabilityStatus);
+                    ConsoleUI.FormatPercent(e.AllocationPercentage),
+                    e.AvailabilityStatus
+                }),
+                rightAlignColumnIndexes: [0, 2]);
         }
 
         ConsoleUI.Divider();
@@ -65,9 +75,9 @@ public class ResourceDashboardScreen(ApiClient api)
         if (detail is null) { ConsoleUI.Error("Employee not found."); ConsoleUI.PressAnyKey(); return; }
 
         ConsoleUI.SubHeader(detail.Name);
-        Console.WriteLine($"Department     : {detail.Department}");
-        Console.WriteLine($"Current Status : {ConsoleUI.StatusUpper(detail.CurrentStatus)} ({detail.CurrentAllocation}%)");
-        Console.WriteLine($"Profile Skills : {detail.Skills}");
+        ConsoleUI.KeyValue("Department", detail.Department);
+        ConsoleUI.KeyValue("Current Status", $"{ConsoleUI.StatusUpper(detail.CurrentStatus)} ({detail.CurrentAllocation}%)");
+        ConsoleUI.KeyValue("Profile Skills", detail.Skills);
         ConsoleUI.BlankLine();
 
         Console.WriteLine("Active Allocations:");
@@ -75,13 +85,16 @@ public class ResourceDashboardScreen(ApiClient api)
             Console.WriteLine("  (none)");
         else
         {
-            ConsoleUI.TableHeader("Project", "%", "From", "To");
-            foreach (var a in detail.ActiveAllocations)
-                ConsoleUI.TableRow(
+            ConsoleUI.RenderTable(
+                ["Project", "%", "From", "To"],
+                detail.ActiveAllocations.Select(a => new[]
+                {
                     a.ProjectName,
-                    $"{a.Percentage}%",
-                    a.FromDate.ToString("dd-MMM-yy"),
-                    a.ToDate.ToString("dd-MMM-yy"));
+                    ConsoleUI.FormatPercent(a.Percentage),
+                    ConsoleUI.FormatDate(a.FromDate),
+                    ConsoleUI.FormatDate(a.ToDate)
+                }),
+                rightAlignColumnIndexes: [1, 2, 3]);
         }
 
         ConsoleUI.BlankLine();

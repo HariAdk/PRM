@@ -5,7 +5,7 @@ using ProjectManagementSystem.Client.Screens.Manager;
 
 namespace ProjectManagementSystem.Client.Screens;
 
-/// <summary>Screen 4 — Manager Menu</summary>
+/// <summary>Screen 4 ï¿½ Manager Menu</summary>
 public class ManagerMenuScreen(ApiClient api, SessionContext session)
 {
     public async Task ShowAsync()

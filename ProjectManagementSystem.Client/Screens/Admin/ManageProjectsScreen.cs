@@ -4,7 +4,7 @@ using ProjectManagementSystem.Core.DTOs.Project;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.2 — Manage Projects</summary>
+/// <summary>Screen 3.2 ï¿½ Manage Projects</summary>
 public class ManageProjectsScreen(ApiClient api)
 {
     private static readonly string[] Statuses = ["Planned", "Active", "OnHold", "Completed"];
@@ -83,14 +83,17 @@ public class ManageProjectsScreen(ApiClient api)
         if (error is not null) { ConsoleUI.Error(error); ConsoleUI.PressAnyKey(); return; }
 
         var list = projects?.ToList() ?? [];
-        ConsoleUI.TableHeader("ID", "Name", "Manager", "End Date", "Status");
-        foreach (var p in list)
-            ConsoleUI.TableRow(
+        ConsoleUI.RenderTable(
+            ["ID", "Name", "Manager", "End Date", "Status"],
+            list.Select(p => new[]
+            {
                 p.Id.ToString(),
                 p.Name,
                 p.ManagerName,
-                p.EndDate.ToString("dd-MMM-yy"),
-                ConsoleUI.StatusUpper(p.Status));
+                ConsoleUI.FormatDate(p.EndDate),
+                ConsoleUI.StatusUpper(p.Status)
+            }),
+            rightAlignColumnIndexes: [0]);
 
         ConsoleUI.Divider();
         ConsoleUI.ActionBar("[B] Back");
@@ -168,16 +171,20 @@ public class ManageProjectsScreen(ApiClient api)
             if (err is not null) { ConsoleUI.Error(err); ConsoleUI.PressAnyKey(); return; }
 
             var list = milestones?.ToList() ?? [];
-            ConsoleUI.TableHeader("#", "Title", "Due Date", "Status");
-            for (int i = 0; i < list.Count; i++)
-            {
-                var overdue = list[i].Status == "InProgress" && list[i].DueDate < DateOnly.FromDateTime(DateTime.Today) ? "  OVERDUE" : "";
-                ConsoleUI.TableRow(
-                    $"{i + 1}.",
-                    list[i].Title,
-                    list[i].DueDate.ToString("dd-MMM-yy"),
-                    ConsoleUI.StatusUpper(list[i].Status) + overdue);
-            }
+            ConsoleUI.RenderTable(
+                ["#", "Title", "Due Date", "Status"],
+                list.Select((m, i) =>
+                {
+                    var overdue = m.Status == "InProgress" && m.DueDate < DateOnly.FromDateTime(DateTime.Today) ? "  OVERDUE" : "";
+                    return new[]
+                    {
+                        $"{i + 1}.",
+                        m.Title,
+                        ConsoleUI.FormatDate(m.DueDate),
+                        ConsoleUI.StatusUpper(m.Status) + overdue
+                    };
+                }),
+                rightAlignColumnIndexes: [0]);
 
             ConsoleUI.Divider();
             ConsoleUI.Menu(1, "Add Milestone");

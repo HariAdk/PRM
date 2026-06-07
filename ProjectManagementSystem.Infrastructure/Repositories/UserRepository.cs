@@ -1,24 +1,25 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.DTOs.User;
-using ProjectManagementSystem.Core.Enums;
+using ProjectManagementSystem.Core.Validation;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Infrastructure.Data;
 using ProjectManagementSystem.Infrastructure.Models;
 
 namespace ProjectManagementSystem.Infrastructure.Repositories;
 
-public class UserRepository(AppDbContext db) : IUserRepository
+public class UserRepository(AppDbContext db, IMapper mapper) : IUserRepository
 {
     public async Task<UserDto?> GetByIdAsync(int id)
     {
         var user = await db.Users.FindAsync(id);
-        return user is null ? null : MapToDto(user);
+        return user is null ? null : mapper.Map<UserDto>(user);
     }
 
     public async Task<IEnumerable<UserDto>> GetAllAsync()
     {
         var users = await db.Users.OrderBy(u => u.Role).ThenBy(u => u.FullName).ToListAsync();
-        return users.Select(MapToDto);
+        return mapper.Map<IEnumerable<UserDto>>(users);
     }
 
     public async Task<UserDto> CreateAsync(CreateUserDto dto, string passwordHash, bool forcePasswordChange)
@@ -29,14 +30,14 @@ public class UserRepository(AppDbContext db) : IUserRepository
             Email = dto.Email,
             Username = dto.Username,
             PasswordHash = passwordHash,
-            Role = Enum.Parse<UserRole>(dto.Role, ignoreCase: true),
+            Role = EnumParseHelper.ParseUserRole(dto.Role),
             IsActive = true,
             ForcePasswordChange = forcePasswordChange,
             CreatedAt = DateTime.UtcNow
         };
         db.Users.Add(user);
         await db.SaveChangesAsync();
-        return MapToDto(user);
+        return mapper.Map<UserDto>(user);
     }
 
     public async Task UpdatePasswordAsync(int userId, string passwordHash, bool forcePasswordChange)
@@ -65,16 +66,4 @@ public class UserRepository(AppDbContext db) : IUserRepository
         if (user is null) return null;
         return (user.PasswordHash, user.ForcePasswordChange, user.IsActive, user.Id, user.FullName, user.Role.ToString());
     }
-
-    private static UserDto MapToDto(User u) => new()
-    {
-        Id = u.Id,
-        FullName = u.FullName,
-        Email = u.Email,
-        Username = u.Username,
-        Role = u.Role.ToString(),
-        IsActive = u.IsActive,
-        ForcePasswordChange = u.ForcePasswordChange,
-        CreatedAt = u.CreatedAt
-    };
 }

@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
@@ -6,7 +7,7 @@ using ProjectManagementSystem.Infrastructure.Models;
 
 namespace ProjectManagementSystem.Infrastructure.Repositories;
 
-public class AllocationRepository(AppDbContext db) : IAllocationRepository
+public class AllocationRepository(AppDbContext db, IMapper mapper) : IAllocationRepository
 {
     public async Task<IEnumerable<AllocationDto>> GetAllActiveAsync()
     {
@@ -17,7 +18,7 @@ public class AllocationRepository(AppDbContext db) : IAllocationRepository
             .OrderBy(a => a.Employee.FullName)
             .ToListAsync();
 
-        return list.Select(MapToDto);
+        return mapper.Map<IEnumerable<AllocationDto>>(list);
     }
 
     public async Task<IEnumerable<AllocationDto>> GetAllAsync()
@@ -28,7 +29,7 @@ public class AllocationRepository(AppDbContext db) : IAllocationRepository
             .OrderBy(a => a.Employee.FullName)
             .ToListAsync();
 
-        return list.Select(MapToDto);
+        return mapper.Map<IEnumerable<AllocationDto>>(list);
     }
 
     public async Task<IEnumerable<AllocationDto>> GetByEmployeeIdAsync(int employeeId)
@@ -40,7 +41,7 @@ public class AllocationRepository(AppDbContext db) : IAllocationRepository
             .OrderByDescending(a => a.FromDate)
             .ToListAsync();
 
-        return list.Select(MapToDto);
+        return mapper.Map<IEnumerable<AllocationDto>>(list);
     }
 
     public async Task<IEnumerable<AllocationDto>> GetByProjectIdAsync(int projectId)
@@ -52,7 +53,7 @@ public class AllocationRepository(AppDbContext db) : IAllocationRepository
             .OrderBy(a => a.Employee.FullName)
             .ToListAsync();
 
-        return list.Select(MapToDto);
+        return mapper.Map<IEnumerable<AllocationDto>>(list);
     }
 
     public async Task<AllocationDto?> GetByIdAsync(int id)
@@ -62,21 +63,12 @@ public class AllocationRepository(AppDbContext db) : IAllocationRepository
             .Include(a => a.Project)
             .FirstOrDefaultAsync(a => a.Id == id);
 
-        return allocation is null ? null : MapToDto(allocation);
+        return allocation is null ? null : mapper.Map<AllocationDto>(allocation);
     }
 
     public async Task<AllocationDto> CreateAsync(CreateAllocationDto dto)
     {
-        var allocation = new Allocation
-        {
-            EmployeeId = dto.EmployeeId,
-            ProjectId = dto.ProjectId,
-            UtilisationPercent = dto.UtilisationPercent,
-            FromDate = dto.FromDate,
-            ToDate = dto.ToDate,
-            IsActive = true
-        };
-
+        var allocation = mapper.Map<Allocation>(dto);
         db.Allocations.Add(allocation);
         await db.SaveChangesAsync();
 
@@ -104,17 +96,4 @@ public class AllocationRepository(AppDbContext db) : IAllocationRepository
             .Distinct()
             .ToListAsync();
     }
-
-    private static AllocationDto MapToDto(Allocation a) => new()
-    {
-        Id = a.Id,
-        EmployeeId = a.EmployeeId,
-        EmployeeName = a.Employee.FullName,
-        ProjectId = a.ProjectId,
-        ProjectName = a.Project.Name,
-        UtilisationPercent = a.UtilisationPercent,
-        FromDate = a.FromDate,
-        ToDate = a.ToDate,
-        IsActive = a.IsActive
-    };
 }

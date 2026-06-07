@@ -1,6 +1,5 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
-using ProjectManagementSystem.Core.DTOs.Manager;
 
 namespace ProjectManagementSystem.Client.Screens.Manager;
 
@@ -23,16 +22,16 @@ public class MyProjectsScreen(ApiClient api)
             return;
         }
 
-        ConsoleUI.TableHeader("#", "Project", "End Date", "Health");
-        for (int i = 0; i < list.Count; i++)
-        {
-            var p = list[i];
-            ConsoleUI.TableRow(
+        ConsoleUI.RenderTable(
+            ["#", "Project", "End Date", "Health"],
+            list.Select((p, i) => new[]
+            {
                 $"{i + 1}.",
                 p.Name,
-                p.EndDate.ToString("dd-MMM-yy"),
-                ConsoleUI.HealthIcon(p.HealthStatus));
-        }
+                ConsoleUI.FormatDate(p.EndDate),
+                ConsoleUI.HealthIcon(p.HealthStatus)
+            }),
+            rightAlignColumnIndexes: [0]);
 
         ConsoleUI.Divider();
         var numStr = ConsoleUI.Prompt("Select project number to view details");
@@ -52,7 +51,7 @@ public class MyProjectsScreen(ApiClient api)
         if (detail is null) return;
 
         ConsoleUI.SubHeader(detail.Project.Name);
-        Console.WriteLine($"Health Status : {ConsoleUI.HealthIcon(detail.DisplayHealth)}");
+        ConsoleUI.KeyValue("Health Status", ConsoleUI.HealthIcon(detail.DisplayHealth));
         ConsoleUI.BlankLine();
 
         Console.WriteLine("Risk Flags:");
@@ -68,16 +67,16 @@ public class MyProjectsScreen(ApiClient api)
             Console.WriteLine("  (none)");
         else
         {
-            ConsoleUI.TableHeader("#", "Title", "Due Date", "Status");
-            for (int i = 0; i < detail.Milestones.Count; i++)
-            {
-                var m = detail.Milestones[i];
-                ConsoleUI.TableRow(
+            ConsoleUI.RenderTable(
+                ["#", "Title", "Due Date", "Status"],
+                detail.Milestones.Select((m, i) => new[]
+                {
                     $"{i + 1}.",
                     m.Title,
-                    m.DueDate.ToString("dd-MMM-yy"),
-                    ConsoleUI.FormatMilestoneStatus(m.Status, m.IsOverdue));
-            }
+                    ConsoleUI.FormatDate(m.DueDate),
+                    ConsoleUI.FormatMilestoneStatus(m.Status, m.IsOverdue)
+                }),
+                rightAlignColumnIndexes: [0]);
         }
 
         ConsoleUI.BlankLine();
@@ -86,13 +85,16 @@ public class MyProjectsScreen(ApiClient api)
             Console.WriteLine("  (none)");
         else
         {
-            ConsoleUI.TableHeader("Name", "%", "From", "To");
-            foreach (var a in detail.Allocations)
-                ConsoleUI.TableRow(
+            ConsoleUI.RenderTable(
+                ["Name", "%", "From", "To"],
+                detail.Allocations.Select(a => new[]
+                {
                     a.EmployeeName,
-                    $"{a.UtilisationPercent}%",
-                    a.FromDate.ToString("dd-MMM-yy"),
-                    a.ToDate.ToString("dd-MMM-yy"));
+                    ConsoleUI.FormatPercent(a.UtilisationPercent),
+                    ConsoleUI.FormatDate(a.FromDate),
+                    ConsoleUI.FormatDate(a.ToDate)
+                }),
+                rightAlignColumnIndexes: [1, 2, 3]);
         }
 
         ConsoleUI.ActionBar("[A] Get AI Risk Summary", "[B] Back");
@@ -106,7 +108,7 @@ public class MyProjectsScreen(ApiClient api)
         Console.Clear();
         ConsoleUI.SubHeader($"AI Risk Summary — {projectName}");
 
-        var (result, error) = await api.ManagerRiskSummaryAsync(new AIRiskSummaryRequestDto { ProjectId = projectId });
+        var (result, error) = await api.ManagerRiskSummaryAsync(new Core.DTOs.Manager.AIRiskSummaryRequestDto { ProjectId = projectId });
         if (error is not null) { ConsoleUI.Error(error); ConsoleUI.PressAnyKey(); return; }
 
         ConsoleUI.AiNote("This summary is AI-generated from milestone and timesheet data.");
