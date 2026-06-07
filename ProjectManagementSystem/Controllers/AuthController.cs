@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Auth;
 using ProjectManagementSystem.Core.DTOs.Common;
 using ProjectManagementSystem.Core.Interfaces.Services;
@@ -27,18 +28,15 @@ public class AuthController(IAuthService authService) : ControllerBase
     }
 
     [HttpPost("signup")]
-    public async Task<IActionResult> SignUp([FromBody] SignUpRequestDto request)
-    {
-        try
-        {
-            var result = await authService.SignUpAsync(request);
-            return Created(string.Empty, ApiResponse<object>.Ok(result, "Account created. Please log in."));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-    }
+    public IActionResult SignUp([FromBody] SignUpRequestDto request) =>
+        StatusCode(StatusCodes.Status403Forbidden,
+            ApiResponse<object>.Fail(ErrorMessages.SignUpDisabled));
+
+    /*
+    // Self-registration removed per BRD V4 — accounts are Admin-created only.
+    [HttpPost("signup")]
+    public async Task<IActionResult> SignUp([FromBody] SignUpRequestDto request) { ... }
+    */
 
     [HttpPut("change-password/{userId:int}")]
     [Authorize]

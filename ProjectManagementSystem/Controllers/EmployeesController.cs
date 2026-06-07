@@ -81,7 +81,26 @@ public class EmployeesController(IEmployeeService employeeService) : ControllerB
         }
     }
 
-    /// <summary>Screen 3.1.4 ù View Employee Skills</summary>
+    /// <summary>Screen 3.1.4 ? Assign Manager</summary>
+    [HttpPut("assign-manager")]
+    public async Task<IActionResult> AssignManager([FromBody] AssignManagerDto dto)
+    {
+        try
+        {
+            var employee = await employeeService.AssignManagerAsync(dto);
+            return Ok(ApiResponse<EmployeeDto>.Ok(employee, "Manager assigned successfully."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>Screen 3.1.4 ? View Employee Skills</summary>
     [HttpGet("{id:int}/skills")]
     public async Task<IActionResult> GetSkills(int id)
     {

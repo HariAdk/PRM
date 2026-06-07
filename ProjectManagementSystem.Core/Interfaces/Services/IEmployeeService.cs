@@ -13,4 +13,5 @@ public interface IEmployeeService
     Task<EmployeeSkillDto> AddSkillAsync(int employeeId, AddSkillDto dto);
     Task<EmployeeSkillDto> UpdateSkillAsync(int employeeId, int skillId, UpdateSkillDto dto);
     Task RemoveSkillAsync(int employeeId, int skillId);
+    Task<EmployeeDto> AssignManagerAsync(AssignManagerDto dto);
 }

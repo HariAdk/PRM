@@ -5,7 +5,7 @@ using ProjectManagementSystem.Core.DTOs.Employee;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.1 � Manage Employees</summary>
+/// <summary>Screen 3.1 — Manage Employees (BRD V4: no Add Employee — profiles created via Manage Users)</summary>
 public class ManageEmployeesScreen(ApiClient api)
 {
     public async Task ShowAsync()
@@ -15,21 +15,21 @@ public class ManageEmployeesScreen(ApiClient api)
             Console.Clear();
             ConsoleUI.DrawBox("MANAGE EMPLOYEES");
 
-            ConsoleUI.Menu(1, "Add Employee");
-            ConsoleUI.Menu(2, "View All Employees");
-            ConsoleUI.Menu(3, "Update Employee");
-            ConsoleUI.Menu(4, "Deactivate Employee");
-            ConsoleUI.Menu(5, "Manage Employee Skills");
+            ConsoleUI.Menu(1, "View All Employees");
+            ConsoleUI.Menu(2, "Update Employee");
+            ConsoleUI.Menu(3, "Deactivate Employee");
+            ConsoleUI.Menu(4, "Manage Employee Skills");
+            ConsoleUI.Menu(5, "Assign Manager");
             ConsoleUI.Menu(6, "Back");
 
             var opt = ConsoleUI.PromptOption();
             switch (opt)
             {
-                case "1": await AddEmployeeAsync();          break;
-                case "2": await ViewAllEmployeesAsync();     break;
-                case "3": await UpdateEmployeeAsync();       break;
-                case "4": await DeactivateEmployeeAsync();   break;
-                case "5": await new ManageSkillsScreen(api).ShowAsync(); break;
+                case "1": await ViewAllEmployeesAsync();     break;
+                case "2": await UpdateEmployeeAsync();       break;
+                case "3": await DeactivateEmployeeAsync();   break;
+                case "4": await new ManageSkillsScreen(api).ShowAsync(); break;
+                case "5": await AssignManagerAsync();        break;
                 case "6": return;
                 default:
                     ConsoleUI.Error("Invalid option.");
@@ -37,50 +37,6 @@ public class ManageEmployeesScreen(ApiClient api)
                     break;
             }
         }
-    }
-
-    private async Task AddEmployeeAsync()
-    {
-        Console.Clear();
-        ConsoleUI.DrawBox("ADD EMPLOYEE");
-
-        Console.Write("User ID      : (from Manage Users ? View All Users) ");
-        var userId = Console.ReadLine()?.Trim() ?? string.Empty;
-        var fullName    = ConsoleUI.Prompt("Full Name    ");
-        var email       = ConsoleUI.Prompt("Email        ");
-        var department  = ConsoleUI.Prompt("Department   ");
-        var designation = ConsoleUI.Prompt("Designation  ");
-
-        ConsoleUI.ActionBar("[S] Save", "[B] Back");
-        var opt = ConsoleUI.PromptOption();
-        if (opt.ToUpper() == "B") return;
-
-        if (!int.TryParse(userId, out var uid))
-        {
-            ConsoleUI.Error("User ID must be a number.");
-            ConsoleUI.PressAnyKey();
-            return;
-        }
-
-        var (data, error) = await api.CreateEmployeeAsync(new CreateEmployeeDto
-        {
-            UserId      = uid,
-            FullName    = fullName,
-            Email       = email,
-            Department  = department,
-            Designation = designation
-        });
-
-        if (error is not null) ConsoleUI.Error(error);
-        else
-        {
-            var msg = data!.UserRole.Equals(RoleNames.Manager, StringComparison.OrdinalIgnoreCase)
-                ? $"Manager profile linked. ID: {data.Id}"
-                : $"Employee added with status BENCH. ID: {data.Id}";
-            ConsoleUI.Success(msg);
-        }
-
-        ConsoleUI.PressAnyKey();
     }
 
     private async Task ViewAllEmployeesAsync()
@@ -219,6 +175,37 @@ public class ManageEmployeesScreen(ApiClient api)
         var (_, error) = await api.DeactivateEmployeeAsync(id);
         if (error is not null) ConsoleUI.Error(error);
         else ConsoleUI.Success("Employee deactivated.");
+        ConsoleUI.PressAnyKey();
+    }
+
+    private async Task AssignManagerAsync()
+    {
+        Console.Clear();
+        ConsoleUI.DrawBox("ASSIGN MANAGER");
+
+        var employeeUserIdStr = ConsoleUI.Prompt("Employee User ID");
+        var managerUserIdStr  = ConsoleUI.Prompt("Manager User ID");
+
+        ConsoleUI.Divider();
+        ConsoleUI.ActionBar("[S] Save", "[B] Back");
+        if (ConsoleUI.PromptOption().ToUpper() == "B") return;
+
+        if (!int.TryParse(employeeUserIdStr, out var employeeUserId) ||
+            !int.TryParse(managerUserIdStr, out var managerUserId))
+        {
+            ConsoleUI.Error("User IDs must be numbers.");
+            ConsoleUI.PressAnyKey();
+            return;
+        }
+
+        var (data, error) = await api.AssignManagerAsync(new AssignManagerDto
+        {
+            EmployeeUserId = employeeUserId,
+            ManagerUserId  = managerUserId
+        });
+
+        if (error is not null) ConsoleUI.Error(error);
+        else ConsoleUI.Success($"Manager assigned to {data!.FullName}.");
         ConsoleUI.PressAnyKey();
     }
 }

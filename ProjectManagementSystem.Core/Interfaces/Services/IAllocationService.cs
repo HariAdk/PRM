@@ -7,6 +7,6 @@ public interface IAllocationService
     Task<IEnumerable<AllocationDto>> GetAllActiveAsync();
     Task<IEnumerable<AllocationDto>> GetByProjectIdAsync(int projectId);
     Task<AllocationDto?> GetByIdAsync(int id);
-    Task<AllocationDto> CreateAsync(CreateAllocationDto dto);
+    Task<AllocationDto> CreateAsync(CreateAllocationDto dto, int? managerUserId = null);
     Task<AllocationDto> EndAsync(int id, DateOnly endDate);
 }

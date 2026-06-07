@@ -11,4 +11,6 @@ public class ProjectDto
     public DateOnly EndDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public string HealthStatus { get; set; } = string.Empty;
+    public int TotalStoryPoints { get; set; }
+    public int CompletedStoryPoints { get; set; }
 }

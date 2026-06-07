@@ -4,7 +4,7 @@ using ProjectManagementSystem.Core.DTOs.Project;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.2 � Manage Projects</summary>
+/// <summary>Screen 3.2 — Manage Projects</summary>
 public class ManageProjectsScreen(ApiClient api)
 {
     private static readonly string[] Statuses = ["Planned", "Active", "OnHold", "Completed"];
@@ -47,6 +47,7 @@ public class ManageProjectsScreen(ApiClient api)
         Console.WriteLine("Status        : (1) PLANNED   (2) ACTIVE   (3) ON_HOLD");
         var statusChoice = ConsoleUI.Prompt("Enter choice");
         var managerIdStr = ConsoleUI.Prompt("Assign Manager (Enter Manager ID)");
+        var spStr        = ConsoleUI.Prompt("Total Story Points");
 
         ConsoleUI.ActionBar("[S] Save", "[B] Back");
         if (ConsoleUI.PromptOption().ToUpper() == "B") return;
@@ -56,17 +57,19 @@ public class ManageProjectsScreen(ApiClient api)
         { ConsoleUI.Error("Invalid date format. Use DD-MM-YYYY."); ConsoleUI.PressAnyKey(); return; }
 
         if (!int.TryParse(managerIdStr, out var managerId) ||
-            !int.TryParse(statusChoice, out var sc) || sc < 1 || sc > 3)
+            !int.TryParse(statusChoice, out var sc) || sc < 1 || sc > 3 ||
+            !int.TryParse(spStr, out var totalSp) || totalSp < 0)
         { ConsoleUI.Error("Invalid input."); ConsoleUI.PressAnyKey(); return; }
 
         var (data, error) = await api.CreateProjectAsync(new CreateProjectDto
         {
-            Name        = name,
-            Description = desc,
-            StartDate   = start,
-            EndDate     = end,
-            Status      = Statuses[sc - 1],
-            ManagerId   = managerId
+            Name             = name,
+            Description      = desc,
+            StartDate        = start,
+            EndDate          = end,
+            Status           = Statuses[sc - 1],
+            ManagerId        = managerId,
+            TotalStoryPoints = totalSp
         });
 
         if (error is not null) ConsoleUI.Error(error);
@@ -84,14 +87,15 @@ public class ManageProjectsScreen(ApiClient api)
 
         var list = projects?.ToList() ?? [];
         ConsoleUI.RenderTable(
-            ["ID", "Name", "Manager", "End Date", "Status"],
+            ["ID", "Name", "Manager", "End Date", "Status", "SP Done/Total"],
             list.Select(p => new[]
             {
                 p.Id.ToString(),
                 p.Name,
                 p.ManagerName,
                 ConsoleUI.FormatDate(p.EndDate),
-                ConsoleUI.StatusUpper(p.Status)
+                ConsoleUI.StatusUpper(p.Status),
+                $"{p.CompletedStoryPoints} / {p.TotalStoryPoints}"
             }),
             rightAlignColumnIndexes: [0]);
 
@@ -123,6 +127,7 @@ public class ManageProjectsScreen(ApiClient api)
         Console.WriteLine("Status        : (1) PLANNED   (2) ACTIVE   (3) ON_HOLD   (4) COMPLETED");
         var sc  = ConsoleUI.Prompt("Enter choice (Enter to keep)");
         var mgr = ConsoleUI.Prompt("Manager ID   (Enter to keep)");
+        var sp  = ConsoleUI.Prompt($"Total Story Points (current: {proj.TotalStoryPoints}, Enter to keep)");
 
         ConsoleUI.ActionBar("[S] Save", "[B] Back");
         if (ConsoleUI.PromptOption().ToUpper() == "B") return;
@@ -134,15 +139,18 @@ public class ManageProjectsScreen(ApiClient api)
         var status    = (!string.IsNullOrEmpty(sc) && int.TryParse(sc, out var si) && si >= 1 && si <= Statuses.Length)
                         ? Statuses[si - 1] : proj.Status;
         var managerId = (!string.IsNullOrEmpty(mgr) && int.TryParse(mgr, out var mi)) ? mi : proj.ManagerId;
+        var totalSp   = (!string.IsNullOrEmpty(sp) && int.TryParse(sp, out var tsp) && tsp >= 0)
+                        ? tsp : proj.TotalStoryPoints;
 
         var (_, error) = await api.UpdateProjectAsync(id, new UpdateProjectDto
         {
-            Name        = string.IsNullOrEmpty(name) ? proj.Name        : name,
-            Description = string.IsNullOrEmpty(desc) ? proj.Description : desc,
-            StartDate   = start,
-            EndDate     = end,
-            Status      = status,
-            ManagerId   = managerId
+            Name             = string.IsNullOrEmpty(name) ? proj.Name        : name,
+            Description      = string.IsNullOrEmpty(desc) ? proj.Description : desc,
+            StartDate        = start,
+            EndDate          = end,
+            Status           = status,
+            ManagerId        = managerId,
+            TotalStoryPoints = totalSp
         });
 
         if (error is not null) ConsoleUI.Error(error);
@@ -172,7 +180,7 @@ public class ManageProjectsScreen(ApiClient api)
 
             var list = milestones?.ToList() ?? [];
             ConsoleUI.RenderTable(
-                ["#", "Title", "Due Date", "Status"],
+                ["#", "Title", "Due Date", "Story Pts", "Status"],
                 list.Select((m, i) =>
                 {
                     var overdue = m.Status == "InProgress" && m.DueDate < DateOnly.FromDateTime(DateTime.Today) ? "  OVERDUE" : "";
@@ -181,12 +189,19 @@ public class ManageProjectsScreen(ApiClient api)
                         $"{i + 1}.",
                         m.Title,
                         ConsoleUI.FormatDate(m.DueDate),
+                        m.StoryPoints.ToString(),
                         ConsoleUI.StatusUpper(m.Status) + overdue
                     };
                 }),
-                rightAlignColumnIndexes: [0]);
+                rightAlignColumnIndexes: [0, 3]);
+
+            var completedSp = list.Where(m => m.Status.Equals("Done", StringComparison.OrdinalIgnoreCase)).Sum(m => m.StoryPoints);
+            var totalSp     = list.Sum(m => m.StoryPoints);
+            var remainingSp = totalSp - completedSp;
 
             ConsoleUI.Divider();
+            Console.WriteLine($"Total: {totalSp} SP   |   Completed: {completedSp} SP   |   Remaining: {remainingSp} SP");
+            ConsoleUI.BlankLine();
             ConsoleUI.Menu(1, "Add Milestone");
             ConsoleUI.Menu(2, "Update Milestone Status");
             ConsoleUI.Menu(3, "Back");
@@ -205,16 +220,21 @@ public class ManageProjectsScreen(ApiClient api)
     private async Task AddMilestoneAsync(int projectId)
     {
         ConsoleUI.BlankLine();
-        var title   = ConsoleUI.Prompt("Title          ");
+        var title   = ConsoleUI.Prompt("Milestone Title");
         var dueStr  = ConsoleUI.Prompt("Due Date (DD-MM-YYYY)");
+        var spStr   = ConsoleUI.Prompt("Story Points");
 
         if (!DateOnly.TryParseExact(dueStr, "dd-MM-yyyy", out var due))
         { ConsoleUI.Error("Invalid date format."); ConsoleUI.PressAnyKey(); return; }
 
+        if (!int.TryParse(spStr, out var storyPoints) || storyPoints < 0)
+        { ConsoleUI.Error("Story points must be a non-negative number."); ConsoleUI.PressAnyKey(); return; }
+
         var (_, error) = await api.AddMilestoneAsync(projectId, new CreateMilestoneDto
         {
-            Title   = title,
-            DueDate = due
+            Title       = title,
+            DueDate     = due,
+            StoryPoints = storyPoints
         });
 
         if (error is not null) ConsoleUI.Error(error);

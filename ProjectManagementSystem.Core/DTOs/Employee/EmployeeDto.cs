@@ -11,6 +11,8 @@ public class EmployeeDto
     public string Designation { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string UserRole { get; set; } = string.Empty;
+    public int? ManagerId { get; set; }
+    public string ManagerName { get; set; } = string.Empty;
     public bool IsActive { get; set; }
 
     /// <summary>Bench/allocated applies to individual contributors only — not delivery managers.</summary>

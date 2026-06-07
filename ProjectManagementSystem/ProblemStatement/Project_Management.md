@@ -165,8 +165,7 @@ This is the first screen the user sees when the application launches.
 ╚══════════════════════════════════════════════╝
 
 1. Login
-2. Sign Up
-3. Exit
+2. Exit
 
 Enter option: _
 ```

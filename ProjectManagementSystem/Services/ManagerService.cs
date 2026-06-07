@@ -19,9 +19,9 @@ public class ManagerService(
     ISystemConfigRepository configRepo,
     IAiService aiService) : IManagerService
 {
-    public async Task<ResourceDashboardDto> GetResourceDashboardAsync()
+    public async Task<ResourceDashboardDto> GetResourceDashboardAsync(int managerUserId)
     {
-        var allEmployees = await employeeRepo.GetAllocatableResourcesAsync();
+        var allEmployees = await employeeRepo.GetTeamAllocatableResourcesAsync(managerUserId);
         var allAllocations = (await allocationRepo.GetAllActiveAsync()).ToList();
         var today = DateOnly.FromDateTime(DateTime.Today);
 
@@ -82,10 +82,13 @@ public class ManagerService(
         };
     }
 
-    public async Task<EmployeeDetailDto?> GetEmployeeDetailAsync(int employeeId)
+    public async Task<EmployeeDetailDto?> GetEmployeeDetailAsync(int managerUserId, int employeeId)
     {
         var employee = await employeeRepo.GetByIdAsync(employeeId);
         if (employee is null || !employee.IsActive) return null;
+
+        if (!await employeeRepo.IsOnManagerTeamAsync(managerUserId, employeeId))
+            return null;
 
         if (!await employeeRepo.IsAllocatableResourceAsync(employeeId))
             return null;
@@ -131,8 +134,8 @@ public class ManagerService(
         };
     }
 
-    public Task<AISkillMatchResultDto> GetAISkillMatchAsync(AISkillMatchRequestDto request) =>
-        aiService.GetSkillMatchAsync(request);
+    public Task<AISkillMatchResultDto> GetAISkillMatchAsync(AISkillMatchRequestDto request, int managerUserId) =>
+        aiService.GetSkillMatchAsync(request, managerUserId);
 
     public Task<AIRiskSummaryResultDto> GetAIRiskSummaryAsync(AIRiskSummaryRequestDto request) =>
         aiService.GetRiskSummaryAsync(request);

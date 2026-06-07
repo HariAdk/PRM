@@ -25,14 +25,14 @@ public class ManagerController(
     [HttpGet("dashboard")]
     public async Task<IActionResult> GetDashboard()
     {
-        var dashboard = await managerService.GetResourceDashboardAsync();
+        var dashboard = await managerService.GetResourceDashboardAsync(User.GetCurrentUserId());
         return Ok(ApiResponse<ResourceDashboardDto>.Ok(dashboard));
     }
 
     [HttpGet("employees/{id:int}")]
     public async Task<IActionResult> GetEmployeeDetail(int id)
     {
-        var detail = await managerService.GetEmployeeDetailAsync(id);
+        var detail = await managerService.GetEmployeeDetailAsync(User.GetCurrentUserId(), id);
         if (detail is null)
             return NotFound(ApiResponse<object>.Fail("Employee not found."));
 
@@ -134,7 +134,7 @@ public class ManagerController(
             if (project.ManagerId != User.GetCurrentUserId())
                 return Forbid();
 
-            var result = await allocationService.CreateAsync(dto);
+            var result = await allocationService.CreateAsync(dto, User.GetCurrentUserId());
             return Ok(ApiResponse<AllocationDto>.Ok(result, "Allocation created successfully."));
         }
         catch (KeyNotFoundException ex)
@@ -230,7 +230,7 @@ public class ManagerController(
             if (project.ManagerId != User.GetCurrentUserId())
                 return Forbid();
 
-            var result = await managerService.GetAISkillMatchAsync(request);
+            var result = await managerService.GetAISkillMatchAsync(request, User.GetCurrentUserId());
             return Ok(ApiResponse<AISkillMatchResultDto>.Ok(result));
         }
         catch (KeyNotFoundException ex)

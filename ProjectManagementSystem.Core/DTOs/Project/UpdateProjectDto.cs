@@ -8,4 +8,5 @@ public class UpdateProjectDto
     public DateOnly EndDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public int ManagerId { get; set; }
+    public int TotalStoryPoints { get; set; }
 }

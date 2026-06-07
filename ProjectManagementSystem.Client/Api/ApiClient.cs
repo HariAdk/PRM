@@ -87,6 +87,9 @@ public class ApiClient
     public Task<(object? Data, string? Error)> DeactivateEmployeeAsync(int id) =>
         PutAsync<object, object>($"api/employees/{id}/deactivate", null!);
 
+    public Task<(EmployeeDto? Data, string? Error)> AssignManagerAsync(AssignManagerDto dto) =>
+        PutAsync<AssignManagerDto, EmployeeDto>("api/employees/assign-manager", dto);
+
     public Task<(IEnumerable<EmployeeSkillDto>? Data, string? Error)> GetSkillsAsync(int id) =>
         GetAsync<IEnumerable<EmployeeSkillDto>>($"api/employees/{id}/skills");
 

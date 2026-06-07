@@ -5,13 +5,7 @@ using ProjectManagementSystem.Core.DTOs.Auth;
 
 namespace ProjectManagementSystem.Client.Screens;
 
-/// <summary>
-/// Screen 1 � Application Start / Login
-/// ????????????????????????????????????????????????
-/// ?    PROJECT & RESOURCE MANAGEMENT TOOL        ?
-/// ?    Learn & Code � Final Project              ?
-/// ????????????????????????????????????????????????
-/// </summary>
+/// <summary>Screen 1 — Application Start / Login (BRD V4: no self-registration).</summary>
 public class StartScreen(ApiClient api, SessionContext session)
 {
     public async Task ShowAsync()
@@ -22,8 +16,7 @@ public class StartScreen(ApiClient api, SessionContext session)
             ConsoleUI.DrawBox("PROJECT & RESOURCE MANAGEMENT TOOL", "Learn & Code \u2014 Final Project");
 
             ConsoleUI.Menu(1, "Login");
-            ConsoleUI.Menu(2, "Sign Up");
-            ConsoleUI.Menu(3, "Exit");
+            ConsoleUI.Menu(2, "Exit");
 
             var opt = ConsoleUI.PromptOption();
 
@@ -31,18 +24,15 @@ public class StartScreen(ApiClient api, SessionContext session)
             {
                 case "1":
                     await HandleLoginAsync();
-                    if (session.IsLoggedIn) return;   // hand off to ScreenRouter
+                    if (session.IsLoggedIn) return;
                     break;
                 case "2":
-                    await new SignUpScreen(api).ShowAsync();
-                    break;
-                case "3":
                     Console.Clear();
                     Console.WriteLine("\nGoodbye!\n");
                     Environment.Exit(0);
                     break;
                 default:
-                    ConsoleUI.Error("Invalid option. Please enter 1, 2 or 3.");
+                    ConsoleUI.Error("Invalid option. Please enter 1 or 2.");
                     ConsoleUI.PressAnyKey();
                     break;
             }
@@ -75,7 +65,6 @@ public class StartScreen(ApiClient api, SessionContext session)
         session.Set(data.UserId, data.FullName, data.Role, data.Token, data.ForcePasswordChange);
         api.SetToken(data.Token);
 
-        // Force password change � cannot be skipped
         if (session.ForcePasswordChange)
         {
             var changed = await new ChangePasswordScreen(api, session).ShowAsync();

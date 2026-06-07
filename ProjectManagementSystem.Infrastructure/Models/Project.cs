@@ -12,6 +12,7 @@ public class Project
     public DateOnly EndDate { get; set; }
     public ProjectStatus Status { get; set; } = ProjectStatus.Planned;
     public ProjectHealth HealthStatus { get; set; } = ProjectHealth.OnTrack;
+    public int TotalStoryPoints { get; set; }
 
     // Navigation
     public User Manager { get; set; } = null!;

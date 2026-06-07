@@ -18,7 +18,10 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
 
     public async Task<EmployeeDto?> GetByUserIdAsync(int userId)
     {
-        var e = await db.Employees.FirstOrDefaultAsync(x => x.UserId == userId);
+        var e = await db.Employees
+            .Include(x => x.User)
+            .Include(x => x.ReportingManager)
+            .FirstOrDefaultAsync(x => x.UserId == userId);
         return e is null ? null : mapper.Map<EmployeeDto>(e);
     }
 
@@ -26,6 +29,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
     {
         var list = await db.Employees
             .Include(e => e.User)
+            .Include(e => e.ReportingManager)
             .Where(e => e.IsActive)
             .OrderBy(e => e.FullName)
             .ToListAsync();
@@ -53,6 +57,65 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
             .Include(e => e.User)
             .AnyAsync(e => e.Id == employeeId && e.IsActive && e.User.Role == UserRole.Employee);
 
+    public async Task<IEnumerable<EmployeeDto>> GetTeamAllocatableResourcesAsync(int managerUserId)
+    {
+        var list = await db.Employees
+            .Include(e => e.User)
+            .Where(e => e.IsActive &&
+                        e.User.Role == UserRole.Employee &&
+                        e.ManagerId == managerUserId)
+            .OrderBy(e => e.FullName)
+            .ToListAsync();
+
+        return mapper.Map<IEnumerable<EmployeeDto>>(list);
+    }
+
+    public async Task<bool> IsOnManagerTeamAsync(int managerUserId, int employeeId) =>
+        await db.Employees
+            .AnyAsync(e => e.Id == employeeId &&
+                           e.IsActive &&
+                           e.ManagerId == managerUserId);
+
+    public async Task<IEnumerable<int>> GetTeamEmployeeIdsAsync(int managerUserId) =>
+        await db.Employees
+            .Where(e => e.IsActive && e.ManagerId == managerUserId)
+            .Select(e => e.Id)
+            .ToListAsync();
+
+    public async Task<EmployeeDto> AssignManagerAsync(int employeeUserId, int managerUserId)
+    {
+        var employee = await db.Employees
+            .Include(e => e.User)
+            .Include(e => e.ReportingManager)
+            .FirstOrDefaultAsync(e => e.UserId == employeeUserId)
+            ?? throw new KeyNotFoundException($"Employee profile not found for user {employeeUserId}.");
+
+        employee.ManagerId = managerUserId;
+        await db.SaveChangesAsync();
+        await db.Entry(employee).Reference(e => e.ReportingManager).LoadAsync();
+        return mapper.Map<EmployeeDto>(employee);
+    }
+
+    public async Task<EmployeeDto> CreateProfileForUserAsync(int userId, string fullName, string email)
+    {
+        var employee = new Employee
+        {
+            UserId = userId,
+            FullName = fullName,
+            Email = email,
+            Department = Core.Constants.SystemDefaults.UnassignedDepartment,
+            Designation = Core.Constants.SystemDefaults.UnassignedDesignation,
+            Status = EmployeeStatus.Bench,
+            IsActive = true
+        };
+
+        db.Employees.Add(employee);
+        await db.SaveChangesAsync();
+
+        var created = await db.Employees.Include(e => e.User).FirstAsync(e => e.Id == employee.Id);
+        return mapper.Map<EmployeeDto>(created);
+    }
+
     public async Task<EmployeeDto> CreateAsync(CreateEmployeeDto dto)
     {
         var employee = mapper.Map<Employee>(dto);
@@ -68,7 +131,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
         var employee = await db.Employees
             .Include(e => e.User)
             .FirstOrDefaultAsync(e => e.Id == id)
-            ?? throw new KeyNotFoundException($"Employee {id} not found."); ;
+            ?? throw new KeyNotFoundException($"Employee {id} not found.");
         employee.FullName = dto.FullName;
         employee.Email = dto.Email;
         employee.Department = dto.Department;

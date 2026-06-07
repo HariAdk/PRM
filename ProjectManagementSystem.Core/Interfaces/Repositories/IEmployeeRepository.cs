@@ -16,4 +16,9 @@ public interface IEmployeeRepository
     Task<bool> UserHasEmployeeProfileAsync(int userId);
     Task<bool> UserExistsForEmployeeAsync(int userId);
     Task SetStatusAsync(int employeeId, EmployeeStatus status);
+    Task<IEnumerable<EmployeeDto>> GetTeamAllocatableResourcesAsync(int managerUserId);
+    Task<bool> IsOnManagerTeamAsync(int managerUserId, int employeeId);
+    Task<IEnumerable<int>> GetTeamEmployeeIdsAsync(int managerUserId);
+    Task<EmployeeDto> AssignManagerAsync(int employeeUserId, int managerUserId);
+    Task<EmployeeDto> CreateProfileForUserAsync(int userId, string fullName, string email);
 }

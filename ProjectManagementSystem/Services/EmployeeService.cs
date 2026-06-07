@@ -1,10 +1,15 @@
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Employee;
+using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
 
 namespace ProjectManagementSystem.Services;
 
-public class EmployeeService(IEmployeeRepository employeeRepo, ISkillRepository skillRepo) : IEmployeeService
+public class EmployeeService(
+    IEmployeeRepository employeeRepo,
+    ISkillRepository skillRepo,
+    IUserRepository userRepo) : IEmployeeService
 {
     public async Task<IEnumerable<EmployeeDto>> GetAllAsync() =>
         await employeeRepo.GetAllAsync();
@@ -29,6 +34,26 @@ public class EmployeeService(IEmployeeRepository employeeRepo, ISkillRepository 
 
     public async Task DeactivateAsync(int id) =>
         await employeeRepo.DeactivateAsync(id);
+
+    public async Task<EmployeeDto> AssignManagerAsync(AssignManagerDto dto)
+    {
+        var employeeUser = await userRepo.GetByIdAsync(dto.EmployeeUserId)
+            ?? throw new KeyNotFoundException(ErrorMessages.EmployeeProfileRequired);
+
+        if (!employeeUser.Role.Equals(RoleNames.Employee, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(ErrorMessages.InvalidManagerAssignment);
+
+        var managerUser = await userRepo.GetByIdAsync(dto.ManagerUserId)
+            ?? throw new KeyNotFoundException("Manager user not found.");
+
+        if (!managerUser.Role.Equals(RoleNames.Manager, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(ErrorMessages.InvalidManagerAssignment);
+
+        if (!await employeeRepo.UserHasEmployeeProfileAsync(dto.EmployeeUserId))
+            throw new KeyNotFoundException(ErrorMessages.EmployeeProfileRequired);
+
+        return await employeeRepo.AssignManagerAsync(dto.EmployeeUserId, dto.ManagerUserId);
+    }
 
     public async Task<IEnumerable<EmployeeSkillDto>> GetSkillsAsync(int employeeId) =>
         await skillRepo.GetSkillsByEmployeeAsync(employeeId);

@@ -7,4 +7,5 @@ public class MilestoneDto
     public string Title { get; set; } = string.Empty;
     public DateOnly DueDate { get; set; }
     public string Status { get; set; } = string.Empty;
+    public int StoryPoints { get; set; }
 }

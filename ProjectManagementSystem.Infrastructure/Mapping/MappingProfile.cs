@@ -20,13 +20,17 @@ public class MappingProfile : Profile
         // Employee
         CreateMap<Employee, EmployeeDto>()
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
-            .ForMember(d => d.UserRole, o => o.MapFrom(s => s.User.Role.ToString()));
+            .ForMember(d => d.UserRole, o => o.MapFrom(s => s.User.Role.ToString()))
+            .ForMember(d => d.ManagerName, o => o.MapFrom(s =>
+                s.ReportingManager != null ? s.ReportingManager.FullName : string.Empty));
 
         CreateMap<CreateEmployeeDto, Employee>()
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.Status, o => o.MapFrom(_ => Core.Enums.EmployeeStatus.Bench))
             .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.ManagerId, o => o.Ignore())
             .ForMember(d => d.User, o => o.Ignore())
+            .ForMember(d => d.ReportingManager, o => o.Ignore())
             .ForMember(d => d.Skills, o => o.Ignore())
             .ForMember(d => d.Allocations, o => o.Ignore())
             .ForMember(d => d.Timesheets, o => o.Ignore());
@@ -35,7 +39,9 @@ public class MappingProfile : Profile
         CreateMap<Project, ProjectDto>()
             .ForMember(d => d.ManagerName, o => o.MapFrom(s => s.Manager != null ? s.Manager.FullName : string.Empty))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
-            .ForMember(d => d.HealthStatus, o => o.MapFrom(s => s.HealthStatus.ToString()));
+            .ForMember(d => d.HealthStatus, o => o.MapFrom(s => s.HealthStatus.ToString()))
+            .ForMember(d => d.CompletedStoryPoints, o => o.MapFrom(s =>
+                s.Milestones.Where(m => m.Status == Core.Enums.MilestoneStatus.Done).Sum(m => m.StoryPoints)));
 
         CreateMap<Milestone, MilestoneDto>()
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));

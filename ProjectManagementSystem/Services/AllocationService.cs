@@ -20,9 +20,16 @@ public class AllocationService(
     public async Task<AllocationDto?> GetByIdAsync(int id) =>
         await allocationRepo.GetByIdAsync(id);
 
-    public async Task<AllocationDto> CreateAsync(CreateAllocationDto dto)
+    public async Task<AllocationDto> CreateAsync(CreateAllocationDto dto, int? managerUserId = null)
     {
         await ValidateEmployeeAsync(dto.EmployeeId);
+
+        if (managerUserId.HasValue &&
+            !await employeeRepo.IsOnManagerTeamAsync(managerUserId.Value, dto.EmployeeId))
+        {
+            throw new UnauthorizedAccessException(ErrorMessages.EmployeeNotOnTeam);
+        }
+
         await ValidateProjectOpenForAllocationAsync(dto.ProjectId);
         ValidateDates(dto.FromDate, dto.ToDate);
         ValidateUtilisation(dto.UtilisationPercent);

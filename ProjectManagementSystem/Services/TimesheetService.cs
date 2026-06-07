@@ -9,7 +9,8 @@ namespace ProjectManagementSystem.Services;
 public class TimesheetService(
     ITimesheetRepository timesheetRepo,
     IProjectRepository projectRepo,
-    IAllocationRepository allocationRepo) : ITimesheetService
+    IAllocationRepository allocationRepo,
+    IEmployeeRepository employeeRepo) : ITimesheetService
 {
     public async Task<IEnumerable<TimesheetDto>> GetTimesheetsByEmployeeAsync(int employeeId) =>
         await timesheetRepo.GetByEmployeeIdAsync(employeeId);
@@ -17,18 +18,21 @@ public class TimesheetService(
     public async Task<IEnumerable<TimesheetDto>> GetTimesheetsByWeekAsync(DateTime weekStart) =>
         await timesheetRepo.GetByWeekStartAsync(weekStart);
 
-    public async Task<ManagerTeamTimesheetDto> GetTeamTimesheetsAsync(int managerId, DateTime weekStart)
+    public async Task<ManagerTeamTimesheetDto> GetTeamTimesheetsAsync(int managerUserId, DateTime weekStart)
     {
         var weekMonday = WeekDateHelper.GetMondayOfWeek(weekStart);
+        var teamEmployeeIds = (await employeeRepo.GetTeamEmployeeIdsAsync(managerUserId)).ToHashSet();
+
         var projects = (await projectRepo.GetAllAsync())
-            .Where(p => p.ManagerId == managerId)
+            .Where(p => p.ManagerId == managerUserId)
             .ToList();
 
         var projectIds = projects.Select(p => p.Id).ToHashSet();
         var allTimesheets = (await timesheetRepo.GetByWeekStartAsync(weekMonday)).ToList();
 
         var submitted = allTimesheets
-            .Where(t => t.Entries.Any(e => projectIds.Contains(e.ProjectId)))
+            .Where(t => teamEmployeeIds.Contains(t.EmployeeId) &&
+                        t.Entries.Any(e => projectIds.Contains(e.ProjectId)))
             .ToList();
 
         var submittedEmployeeIds = submitted.Select(t => t.EmployeeId).ToHashSet();
@@ -38,6 +42,7 @@ public class TimesheetService(
         {
             var allocations = (await allocationRepo.GetByProjectIdAsync(project.Id))
                 .Where(a => a.IsActive &&
+                            teamEmployeeIds.Contains(a.EmployeeId) &&
                             a.FromDate <= DateOnly.FromDateTime(weekMonday.AddDays(6)) &&
                             a.ToDate >= DateOnly.FromDateTime(weekMonday))
                 .ToList();
@@ -70,14 +75,17 @@ public class TimesheetService(
     public async Task<TimesheetDto?> GetTimesheetByIdAsync(int timesheetId) =>
         await timesheetRepo.GetByIdAsync(timesheetId);
 
-    public async Task<TimesheetDto?> GetTimesheetForManagerAsync(int managerId, int timesheetId)
+    public async Task<TimesheetDto?> GetTimesheetForManagerAsync(int managerUserId, int timesheetId)
     {
         var timesheet = await timesheetRepo.GetByIdAsync(timesheetId);
         if (timesheet is null)
             return null;
 
+        if (!await employeeRepo.IsOnManagerTeamAsync(managerUserId, timesheet.EmployeeId))
+            return null;
+
         var managerProjectIds = (await projectRepo.GetAllAsync())
-            .Where(p => p.ManagerId == managerId)
+            .Where(p => p.ManagerId == managerUserId)
             .Select(p => p.Id)
             .ToHashSet();
 

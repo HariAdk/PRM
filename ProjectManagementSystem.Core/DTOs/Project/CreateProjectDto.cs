@@ -8,4 +8,5 @@ public class CreateProjectDto
     public DateOnly EndDate { get; set; }
     public string Status { get; set; } = "Planned";
     public int ManagerId { get; set; }
+    public int TotalStoryPoints { get; set; }
 }

@@ -12,13 +12,13 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
 {
     public async Task<ProjectDto?> GetByIdAsync(int id)
     {
-        var p = await db.Projects.Include(x => x.Manager).FirstOrDefaultAsync(x => x.Id == id);
+        var p = await db.Projects.Include(x => x.Manager).Include(x => x.Milestones).FirstOrDefaultAsync(x => x.Id == id);
         return p is null ? null : mapper.Map<ProjectDto>(p);
     }
 
     public async Task<IEnumerable<ProjectDto>> GetAllAsync()
     {
-        var list = await db.Projects.Include(p => p.Manager).OrderBy(p => p.Name).ToListAsync();
+        var list = await db.Projects.Include(p => p.Manager).Include(p => p.Milestones).OrderBy(p => p.Name).ToListAsync();
         return mapper.Map<IEnumerable<ProjectDto>>(list);
     }
 
@@ -50,6 +50,7 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
             EndDate = dto.EndDate,
             Status = Enum.Parse<ProjectStatus>(dto.Status, ignoreCase: true),
             ManagerId = dto.ManagerId,
+            TotalStoryPoints = dto.TotalStoryPoints,
             HealthStatus = ProjectHealth.OnTrack
         };
         db.Projects.Add(project);
@@ -68,6 +69,7 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
         project.EndDate = dto.EndDate;
         project.Status = Enum.Parse<ProjectStatus>(dto.Status, ignoreCase: true);
         project.ManagerId = dto.ManagerId;
+        project.TotalStoryPoints = dto.TotalStoryPoints;
         await db.SaveChangesAsync();
         await db.Entry(project).Reference(p => p.Manager).LoadAsync();
         return mapper.Map<ProjectDto>(project);

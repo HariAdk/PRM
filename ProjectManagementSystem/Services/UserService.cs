@@ -1,12 +1,13 @@
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.User;
+using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
 using ProjectManagementSystem.Core.Validation;
 
 namespace ProjectManagementSystem.Services;
 
-public class UserService(IUserRepository userRepo) : IUserService
+public class UserService(IUserRepository userRepo, IEmployeeRepository employeeRepo) : IUserService
 {
     public async Task<IEnumerable<UserDto>> GetAllAsync() =>
         await userRepo.GetAllAsync();
@@ -19,7 +20,15 @@ public class UserService(IUserRepository userRepo) : IUserService
             throw new InvalidOperationException(ErrorMessages.DuplicateUsernameOrEmail);
 
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.TemporaryPassword);
-        return await userRepo.CreateAsync(dto, hash, forcePasswordChange: true);
+        var user = await userRepo.CreateAsync(dto, hash, forcePasswordChange: true);
+
+        if (user.Role.Equals(RoleNames.Employee, StringComparison.OrdinalIgnoreCase) &&
+            !await employeeRepo.UserHasEmployeeProfileAsync(user.Id))
+        {
+            await employeeRepo.CreateProfileForUserAsync(user.Id, dto.FullName, dto.Email);
+        }
+
+        return user;
     }
 
     public async Task ResetPasswordAsync(int userId, ResetPasswordDto dto)

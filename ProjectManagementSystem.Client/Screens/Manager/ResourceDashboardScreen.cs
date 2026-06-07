@@ -54,7 +54,7 @@ public class ResourceDashboardScreen(ApiClient api)
         }
 
         ConsoleUI.Divider();
-        Console.WriteLine($"Bench: {dashboard.BenchCount}   |   Over-utilised: {dashboard.OverUtilisedCount}   |   Partial: {dashboard.PartialCount}");
+        Console.WriteLine($"Bench: {dashboard.BenchCount}   |   Partial: {dashboard.PartialCount}");
         ConsoleUI.ActionBar("[D] Drill into employee details", "[B] Back");
 
         var opt = ConsoleUI.PromptOption();

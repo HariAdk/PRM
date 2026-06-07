@@ -23,14 +23,17 @@ public class AiService(
     IAiProviderFactory providerFactory,
     ILogger<AiService> logger) : IAiService
 {
-    public async Task<AISkillMatchResultDto> GetSkillMatchAsync(AISkillMatchRequestDto request)
+    public async Task<AISkillMatchResultDto> GetSkillMatchAsync(AISkillMatchRequestDto request, int managerUserId)
     {
         var project = await projectRepo.GetByIdAsync(request.ProjectId);
         if (project is null)
             return new AISkillMatchResultDto { Matches = [] };
 
+        if (project.ManagerId != managerUserId)
+            return new AISkillMatchResultDto { Matches = [] };
+
         var maxWeeklyHours = await GetMaxWeeklyHoursAsync();
-        var candidates = await BuildSkillMatchCandidatesAsync(request.Requirement, maxWeeklyHours);
+        var candidates = await BuildSkillMatchCandidatesAsync(request.Requirement, maxWeeklyHours, managerUserId);
 
         if (candidates.Count == 0)
             return new AISkillMatchResultDto { Matches = [] };
@@ -110,10 +113,11 @@ public class AiService(
 
     private async Task<List<SkillMatchCandidateDto>> BuildSkillMatchCandidatesAsync(
         string requirement,
-        int maxWeeklyHours)
+        int maxWeeklyHours,
+        int managerUserId)
     {
         var requiredHours = AiRequirementParser.TryParseWeeklyHours(requirement);
-        var allEmployees = await employeeRepo.GetAllocatableResourcesAsync();
+        var allEmployees = await employeeRepo.GetTeamAllocatableResourcesAsync(managerUserId);
         var allAllocations = (await allocationRepo.GetAllActiveAsync()).ToList();
         var today = DateOnly.FromDateTime(DateTime.Today);
         var candidates = new List<SkillMatchCandidateDto>();
