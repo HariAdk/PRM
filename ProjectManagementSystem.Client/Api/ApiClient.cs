@@ -49,9 +49,6 @@ public class ApiClient
     public Task<(LoginResponseDto? Data, string? Error)> LoginAsync(LoginRequestDto dto) =>
         PostAsync<LoginRequestDto, LoginResponseDto>("api/auth/login", dto);
 
-    public Task<(UserDto? Data, string? Error)> SignUpAsync(SignUpRequestDto dto) =>
-        PostAsync<SignUpRequestDto, UserDto>("api/auth/signup", dto);
-
     public Task<(object? Data, string? Error)> ChangePasswordAsync(int userId, ChangePasswordDto dto) =>
         PutAsync<ChangePasswordDto, object>($"api/auth/change-password/{userId}", dto);
 

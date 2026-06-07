@@ -17,10 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="ProblemStatement\" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\ProjectManagementSystem.Core\ProjectManagementSystem.Core.csproj" />
     <ProjectReference Include="..\ProjectManagementSystem.Infrastructure\ProjectManagementSystem.Infrastructure.csproj" />
   </ItemGroup>
 
