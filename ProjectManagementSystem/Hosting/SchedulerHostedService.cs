@@ -2,7 +2,7 @@ using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
 
-namespace ProjectManagementSystem.Services;
+namespace ProjectManagementSystem.Hosting;
 
 /// <summary>
 /// Background worker that runs scheduler tasks on startup and every N hours

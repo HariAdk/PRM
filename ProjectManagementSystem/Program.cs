@@ -1,18 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using ProjectManagementSystem.Application;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.Interfaces.AI;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
-using ProjectManagementSystem.Core.Interfaces.Services;
 using ProjectManagementSystem.Core.Settings;
+using ProjectManagementSystem.Hosting;
 using ProjectManagementSystem.Infrastructure.AI;
 using ProjectManagementSystem.Infrastructure.Data;
 using ProjectManagementSystem.Infrastructure.Mapping;
 using ProjectManagementSystem.Infrastructure.Repositories;
-using ProjectManagementSystem.Services;
+using ProjectManagementSystem.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,15 +29,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
 // ── AI adapters (Gemini / Groq) ───────────────────────────────────────────────
-builder.Services.AddHttpClient("Gemini", client =>
+builder.Services.AddHttpClient(HttpClientNames.Gemini, client =>
 {
-    client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
-    client.Timeout = TimeSpan.FromSeconds(90);
+    client.BaseAddress = new Uri(ExternalApiDefaults.GeminiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(ExternalApiDefaults.HttpTimeoutSeconds);
 });
-builder.Services.AddHttpClient("Groq", client =>
+builder.Services.AddHttpClient(HttpClientNames.Groq, client =>
 {
-    client.BaseAddress = new Uri("https://api.groq.com/");
-    client.Timeout = TimeSpan.FromSeconds(90);
+    client.BaseAddress = new Uri(ExternalApiDefaults.GroqBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(ExternalApiDefaults.HttpTimeoutSeconds);
 });
 builder.Services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
 
@@ -49,19 +50,8 @@ builder.Services.AddScoped<IAllocationRepository, AllocationRepository>();
 builder.Services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
 builder.Services.AddScoped<ITimesheetRepository, TimesheetRepository>();
 
-// ── Services ──────────────────────────────────────────────────────────────────
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IEmployeeService, EmployeeService>();
-builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<IAllocationService, AllocationService>();
-builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
-builder.Services.AddScoped<IAiService, AiService>();
-builder.Services.AddScoped<IManagerService, ManagerService>();
-builder.Services.AddScoped<ITimesheetService, TimesheetService>();
-builder.Services.AddScoped<IEmployeePortalService, EmployeePortalService>();
-builder.Services.AddScoped<ISchedulerService, SchedulerService>();
+// ── Application services ──────────────────────────────────────────────────────
+builder.Services.AddApplicationServices();
 builder.Services.AddHostedService<SchedulerHostedService>();
 
 // ── Seeder ───────────────────────────────────────────────────────────────────
@@ -116,6 +106,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+app.UseExceptionHandling();
 
 // ── Run Migrations + Seed on startup ─────────────────────────────────────────
 using (var scope = app.Services.CreateScope())

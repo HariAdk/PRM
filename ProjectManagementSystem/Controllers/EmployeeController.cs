@@ -19,116 +19,46 @@ public class EmployeeController(IEmployeePortalService employeePortalService) : 
     [HttpGet("reminder")]
     public async Task<IActionResult> GetReminder()
     {
-        try
-        {
-            var reminder = await employeePortalService.GetReminderAsync(User.GetCurrentUserId());
-            return Ok(ApiResponse<EmployeeReminderDto>.Ok(reminder));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ApiResponse<object>.Fail(ex.Message));
-        }
+        var reminder = await employeePortalService.GetReminderAsync(User.GetCurrentUserId());
+        return Ok(ApiResponse<EmployeeReminderDto>.Ok(reminder));
     }
 
     [HttpGet("allocations")]
     public async Task<IActionResult> GetMyAllocations()
     {
-        try
-        {
-            var profile = await employeePortalService.GetProfileAsync(User.GetCurrentUserId());
-            return Ok(ApiResponse<EmployeeProfileDto>.Ok(profile));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ApiResponse<object>.Fail(ex.Message));
-        }
+        var profile = await employeePortalService.GetProfileAsync(User.GetCurrentUserId());
+        return Ok(ApiResponse<EmployeeProfileDto>.Ok(profile));
     }
 
     [HttpGet("timesheets/context")]
     public async Task<IActionResult> GetSubmitContext([FromQuery] string? weekStart)
     {
-        try
-        {
-            var week = WeekDateHelper.TryParseWeekStart(weekStart);
-            var context = await employeePortalService.GetSubmitContextAsync(User.GetCurrentUserId(), week);
-            return Ok(ApiResponse<EmployeeSubmitContextDto>.Ok(context));
-        }
-        catch (FormatException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ApiResponse<object>.Fail(ex.Message));
-        }
+        var week = WeekDateHelper.TryParseWeekStart(weekStart);
+        var context = await employeePortalService.GetSubmitContextAsync(User.GetCurrentUserId(), week);
+        return Ok(ApiResponse<EmployeeSubmitContextDto>.Ok(context));
     }
 
     [HttpPost("timesheets")]
     public async Task<IActionResult> SubmitTimesheet([FromBody] SubmitEmployeeTimesheetDto dto)
     {
-        try
-        {
-            var result = await employeePortalService.SubmitTimesheetAsync(User.GetCurrentUserId(), dto);
-            return Ok(ApiResponse<TimesheetDto>.Ok(result, "Timesheet submitted successfully."));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ApiResponse<object>.Fail(ex.Message));
-        }
+        var result = await employeePortalService.SubmitTimesheetAsync(User.GetCurrentUserId(), dto);
+        return Ok(ApiResponse<TimesheetDto>.Ok(result, SuccessMessages.TimesheetSubmitted));
     }
 
     [HttpGet("timesheets")]
     public async Task<IActionResult> GetMyTimesheets()
     {
-        try
-        {
-            var timesheets = await employeePortalService.GetMyTimesheetsAsync(User.GetCurrentUserId());
-            return Ok(ApiResponse<IEnumerable<TimesheetDto>>.Ok(timesheets));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ApiResponse<object>.Fail(ex.Message));
-        }
+        var timesheets = await employeePortalService.GetMyTimesheetsAsync(User.GetCurrentUserId());
+        return Ok(ApiResponse<IEnumerable<TimesheetDto>>.Ok(timesheets));
     }
 
     [HttpGet("timesheets/{id:int}")]
     public async Task<IActionResult> GetMyTimesheet(int id)
     {
-        try
-        {
-            var timesheet = await employeePortalService.GetMyTimesheetAsync(User.GetCurrentUserId(), id);
-            if (timesheet is null)
-                return NotFound(ApiResponse<object>.Fail(ErrorMessages.TimesheetNotFound));
+        var timesheet = await employeePortalService.GetMyTimesheetAsync(User.GetCurrentUserId(), id);
+        if (timesheet is null)
+            return NotFound(ApiResponse<object>.Fail(ErrorMessages.TimesheetNotFound));
 
-            return Ok(ApiResponse<TimesheetDto>.Ok(timesheet));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ApiResponse<object>.Fail(ex.Message));
-        }
+        return Ok(ApiResponse<TimesheetDto>.Ok(timesheet));
     }
 }

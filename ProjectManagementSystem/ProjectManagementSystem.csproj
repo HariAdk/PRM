@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -17,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ProjectManagementSystem.Application\ProjectManagementSystem.Application.csproj" />
     <ProjectReference Include="..\ProjectManagementSystem.Core\ProjectManagementSystem.Core.csproj" />
     <ProjectReference Include="..\ProjectManagementSystem.Infrastructure\ProjectManagementSystem.Infrastructure.csproj" />
   </ItemGroup>
