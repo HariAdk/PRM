@@ -1,6 +1,7 @@
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.Enums;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
 
@@ -27,7 +28,7 @@ public class AllocationService(
         if (managerUserId.HasValue &&
             !await employeeRepo.IsOnManagerTeamAsync(managerUserId.Value, dto.EmployeeId))
         {
-            throw new UnauthorizedAccessException(ErrorMessages.EmployeeNotOnTeam);
+            throw new ForbiddenAppException(ErrorMessages.EmployeeNotOnTeam);
         }
 
         await ValidateProjectOpenForAllocationAsync(dto.ProjectId);
@@ -41,13 +42,13 @@ public class AllocationService(
     public async Task<AllocationDto> EndAsync(int id, DateOnly endDate)
     {
         var existing = await allocationRepo.GetByIdAsync(id)
-                       ?? throw new KeyNotFoundException(ErrorMessages.AllocationNotFoundById(id));
+                       ?? throw new NotFoundException(ErrorMessages.AllocationNotFoundById(id));
 
         if (!existing.IsActive)
-            throw new InvalidOperationException(ErrorMessages.AllocationAlreadyEnded);
+            throw new BusinessRuleException(ErrorMessages.AllocationAlreadyEnded);
 
         if (endDate < existing.FromDate)
-            throw new InvalidOperationException(ErrorMessages.AllocationEndBeforeStart);
+            throw new BusinessRuleException(ErrorMessages.AllocationEndBeforeStart);
 
         return await allocationRepo.UpdateEndDateAsync(id, endDate);
     }
@@ -55,37 +56,37 @@ public class AllocationService(
     private async Task ValidateEmployeeAsync(int employeeId)
     {
         var employee = await employeeRepo.GetByIdAsync(employeeId)
-                       ?? throw new KeyNotFoundException(ErrorMessages.EmployeeNotFoundById(employeeId));
+                       ?? throw new NotFoundException(ErrorMessages.EmployeeNotFoundById(employeeId));
 
         if (!employee.IsActive)
-            throw new InvalidOperationException(ErrorMessages.InactiveEmployeeCannotAllocate);
+            throw new BusinessRuleException(ErrorMessages.InactiveEmployeeCannotAllocate);
 
         if (!await employeeRepo.IsAllocatableResourceAsync(employeeId))
-            throw new InvalidOperationException(ErrorMessages.OnlyEmployeesCanBeAllocated);
+            throw new BusinessRuleException(ErrorMessages.OnlyEmployeesCanBeAllocated);
     }
 
     private async Task ValidateProjectOpenForAllocationAsync(int projectId)
     {
         var project = await projectRepo.GetByIdAsync(projectId)
-                      ?? throw new KeyNotFoundException(ErrorMessages.ProjectNotFoundById(projectId));
+                      ?? throw new NotFoundException(ErrorMessages.ProjectNotFoundById(projectId));
 
         var isOpen = string.Equals(project.Status, nameof(ProjectStatus.Active), StringComparison.OrdinalIgnoreCase)
                      || string.Equals(project.Status, nameof(ProjectStatus.Planned), StringComparison.OrdinalIgnoreCase);
 
         if (!isOpen)
-            throw new InvalidOperationException(ErrorMessages.ProjectNotOpenForAllocation);
+            throw new BusinessRuleException(ErrorMessages.ProjectNotOpenForAllocation);
     }
 
     private static void ValidateDates(DateOnly from, DateOnly to)
     {
         if (to < from)
-            throw new InvalidOperationException(ErrorMessages.AllocationDateRangeInvalid);
+            throw new BusinessRuleException(ErrorMessages.AllocationDateRangeInvalid);
     }
 
     private static void ValidateUtilisation(int percent)
     {
         if (percent is < AllocationLimits.MinUtilisationPercent or > AllocationLimits.MaxUtilisationPercent)
-            throw new InvalidOperationException(ErrorMessages.UtilisationOutOfRange());
+            throw new BusinessRuleException(ErrorMessages.UtilisationOutOfRange());
     }
 
     private async Task EnsureNoOverAllocationAsync(
@@ -103,7 +104,7 @@ public class AllocationService(
         if (total > AllocationLimits.MaxTotalUtilisationPercent)
         {
             var current = overlapping.Sum(a => a.UtilisationPercent);
-            throw new InvalidOperationException(ErrorMessages.OverAllocationDetected(current, newPercent));
+            throw new BusinessRuleException(ErrorMessages.OverAllocationDetected(current, newPercent));
         }
     }
 }

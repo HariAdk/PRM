@@ -1,6 +1,7 @@
 using Moq;
 using ProjectManagementSystem.Application;
 using ProjectManagementSystem.Core.Constants;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.Employee;
 using ProjectManagementSystem.Core.DTOs.User;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
@@ -28,7 +29,7 @@ public class EmployeeServiceTests
             Role = RoleNames.Manager
         });
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _sut.AssignManagerAsync(new AssignManagerDto { EmployeeUserId = 1, ManagerUserId = 2 }));
     }
 
@@ -38,7 +39,7 @@ public class EmployeeServiceTests
         _userRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserDto { Id = 1, Role = RoleNames.Employee });
         _userRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new UserDto { Id = 2, Role = RoleNames.Employee });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _sut.AssignManagerAsync(new AssignManagerDto { EmployeeUserId = 1, ManagerUserId = 2 }));
 
         Assert.Equal(ErrorMessages.InvalidManagerAssignment, ex.Message);
@@ -51,7 +52,7 @@ public class EmployeeServiceTests
         _userRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new UserDto { Id = 2, Role = RoleNames.Manager });
         _employeeRepo.Setup(r => r.UserHasEmployeeProfileAsync(1)).ReturnsAsync(false);
 
-        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+        var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
             _sut.AssignManagerAsync(new AssignManagerDto { EmployeeUserId = 1, ManagerUserId = 2 }));
 
         Assert.Equal(ErrorMessages.EmployeeProfileRequired, ex.Message);

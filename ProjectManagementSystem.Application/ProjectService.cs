@@ -1,6 +1,7 @@
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Project;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Interfaces.Services;
 
 namespace ProjectManagementSystem.Application;
@@ -12,15 +13,15 @@ public class ProjectService(IProjectRepository projectRepo) : IProjectService
 
     public async Task<ProjectDto> GetByIdAsync(int id) =>
         await projectRepo.GetByIdAsync(id)
-        ?? throw new KeyNotFoundException(ErrorMessages.ProjectNotFoundById(id));
+        ?? throw new NotFoundException(ErrorMessages.ProjectNotFoundById(id));
 
     public async Task<ProjectDto> CreateAsync(CreateProjectDto dto)
     {
         if (!await projectRepo.ManagerExistsAsync(dto.ManagerId))
-            throw new InvalidOperationException(ErrorMessages.InvalidManagerId);
+            throw new BusinessRuleException(ErrorMessages.InvalidManagerId);
 
         if (dto.EndDate <= dto.StartDate)
-            throw new InvalidOperationException(ErrorMessages.ProjectEndBeforeStart);
+            throw new BusinessRuleException(ErrorMessages.ProjectEndBeforeStart);
 
         return await projectRepo.CreateAsync(dto);
     }
@@ -28,7 +29,7 @@ public class ProjectService(IProjectRepository projectRepo) : IProjectService
     public async Task<ProjectDto> UpdateAsync(int id, UpdateProjectDto dto)
     {
         if (!await projectRepo.ManagerExistsAsync(dto.ManagerId))
-            throw new InvalidOperationException(ErrorMessages.InvalidManagerId);
+            throw new BusinessRuleException(ErrorMessages.InvalidManagerId);
 
         return await projectRepo.UpdateAsync(id, dto);
     }
@@ -39,7 +40,7 @@ public class ProjectService(IProjectRepository projectRepo) : IProjectService
     public async Task<MilestoneDto> AddMilestoneAsync(int projectId, CreateMilestoneDto dto)
     {
         _ = await projectRepo.GetByIdAsync(projectId)
-            ?? throw new KeyNotFoundException(ErrorMessages.ProjectNotFoundById(projectId));
+            ?? throw new NotFoundException(ErrorMessages.ProjectNotFoundById(projectId));
 
         return await projectRepo.AddMilestoneAsync(projectId, dto);
     }

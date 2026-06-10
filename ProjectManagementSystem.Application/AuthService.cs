@@ -6,6 +6,8 @@ using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
 using ProjectManagementSystem.Core.Validation;
 
+using ProjectManagementSystem.Core.Exceptions;
+
 namespace ProjectManagementSystem.Application;
 
 public class AuthService(IUserRepository userRepo, IJwtTokenService jwtTokenService) : IAuthService
@@ -13,13 +15,13 @@ public class AuthService(IUserRepository userRepo, IJwtTokenService jwtTokenServ
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
     {
         var creds = await userRepo.GetCredentialsAsync(request.Username)
-            ?? throw new UnauthorizedAccessException(ErrorMessages.InvalidCredentials);
+            ?? throw new UnauthorizedAppException(ErrorMessages.InvalidCredentials);
 
         if (!creds.IsActive)
-            throw new UnauthorizedAccessException(ErrorMessages.AccountDeactivated);
+            throw new UnauthorizedAppException(ErrorMessages.AccountDeactivated);
 
         if (!BCrypt.Net.BCrypt.Verify(request.Password, creds.PasswordHash))
-            throw new UnauthorizedAccessException(ErrorMessages.InvalidCredentials);
+            throw new UnauthorizedAppException(ErrorMessages.InvalidCredentials);
 
         var token = jwtTokenService.GenerateToken(creds.UserId, request.Username, creds.Role);
 
@@ -37,12 +39,12 @@ public class AuthService(IUserRepository userRepo, IJwtTokenService jwtTokenServ
     {
         var role = EnumParseHelper.ParseUserRole(request.Role);
         if (role == UserRole.Admin)
-            throw new InvalidOperationException(ErrorMessages.AdminSignUpForbidden);
+            throw new BusinessRuleException(ErrorMessages.AdminSignUpForbidden);
 
         PasswordValidator.Validate(request.Password);
 
         if (await userRepo.ExistsAsync(request.Username, request.Email))
-            throw new InvalidOperationException(ErrorMessages.DuplicateUsernameOrEmail);
+            throw new BusinessRuleException(ErrorMessages.DuplicateUsernameOrEmail);
 
         var hash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         var createDto = new CreateUserDto
@@ -60,7 +62,7 @@ public class AuthService(IUserRepository userRepo, IJwtTokenService jwtTokenServ
     public async Task ChangePasswordAsync(int userId, ChangePasswordDto dto)
     {
         if (dto.NewPassword != dto.ConfirmPassword)
-            throw new InvalidOperationException(ErrorMessages.PasswordsDoNotMatch);
+            throw new BusinessRuleException(ErrorMessages.PasswordsDoNotMatch);
 
         PasswordValidator.Validate(dto.NewPassword);
 

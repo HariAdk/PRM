@@ -1,6 +1,7 @@
 using Moq;
 using ProjectManagementSystem.Application;
 using ProjectManagementSystem.Core.Constants;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.DTOs.Config;
 using ProjectManagementSystem.Core.DTOs.Employee;
@@ -43,7 +44,7 @@ public class EmployeePortalServiceTests
 
         var dto = ValidSubmitDto(hours: 8);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => _sut.SubmitTimesheetAsync(UserId, dto));
 
         Assert.Equal(ErrorMessages.TimesheetAlreadySubmitted, ex.Message);
@@ -66,7 +67,7 @@ public class EmployeePortalServiceTests
             }]
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.SubmitTimesheetAsync(UserId, dto));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.SubmitTimesheetAsync(UserId, dto));
     }
 
     [Fact]
@@ -76,7 +77,7 @@ public class EmployeePortalServiceTests
 
         var dto = ValidSubmitDto(hours: 8, projectId: 999);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => _sut.SubmitTimesheetAsync(UserId, dto));
 
         Assert.Contains("not allocated", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -89,7 +90,7 @@ public class EmployeePortalServiceTests
 
         var dto = ValidSubmitDto(hours: 25);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => _sut.SubmitTimesheetAsync(UserId, dto));
 
         Assert.Contains("exceed the allowed maximum", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -111,7 +112,7 @@ public class EmployeePortalServiceTests
             ]
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => _sut.SubmitTimesheetAsync(UserId, dto));
 
         Assert.Contains("exceed the maximum weekly limit", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -124,7 +125,7 @@ public class EmployeePortalServiceTests
 
         var dto = ValidSubmitDto(hours: 8, activityTags: "");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => _sut.SubmitTimesheetAsync(UserId, dto));
 
         Assert.Contains("activity tag", ex.Message, StringComparison.OrdinalIgnoreCase);

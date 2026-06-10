@@ -1,6 +1,7 @@
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Employee;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Interfaces.Services;
 
 namespace ProjectManagementSystem.Application;
@@ -15,15 +16,15 @@ public class EmployeeService(
 
     public async Task<EmployeeDto> GetByIdAsync(int id) =>
         await employeeRepo.GetByIdAsync(id)
-        ?? throw new KeyNotFoundException(ErrorMessages.EmployeeNotFoundById(id));
+        ?? throw new NotFoundException(ErrorMessages.EmployeeNotFoundById(id));
 
     public async Task<EmployeeDto> CreateAsync(CreateEmployeeDto dto)
     {
         if (!await employeeRepo.UserExistsForEmployeeAsync(dto.UserId))
-            throw new InvalidOperationException(ErrorMessages.InvalidEmployeeUserId);
+            throw new BusinessRuleException(ErrorMessages.InvalidEmployeeUserId);
 
         if (await employeeRepo.UserHasEmployeeProfileAsync(dto.UserId))
-            throw new InvalidOperationException(ErrorMessages.EmployeeProfileAlreadyExists);
+            throw new BusinessRuleException(ErrorMessages.EmployeeProfileAlreadyExists);
 
         return await employeeRepo.CreateAsync(dto);
     }
@@ -37,19 +38,19 @@ public class EmployeeService(
     public async Task<EmployeeDto> AssignManagerAsync(AssignManagerDto dto)
     {
         var employeeUser = await userRepo.GetByIdAsync(dto.EmployeeUserId)
-            ?? throw new KeyNotFoundException(ErrorMessages.EmployeeProfileRequired);
+            ?? throw new NotFoundException(ErrorMessages.EmployeeProfileRequired);
 
         if (!employeeUser.Role.Equals(RoleNames.Employee, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(ErrorMessages.InvalidManagerAssignment);
+            throw new BusinessRuleException(ErrorMessages.InvalidManagerAssignment);
 
         var managerUser = await userRepo.GetByIdAsync(dto.ManagerUserId)
-            ?? throw new KeyNotFoundException(ErrorMessages.ManagerUserNotFound);
+            ?? throw new NotFoundException(ErrorMessages.ManagerUserNotFound);
 
         if (!managerUser.Role.Equals(RoleNames.Manager, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(ErrorMessages.InvalidManagerAssignment);
+            throw new BusinessRuleException(ErrorMessages.InvalidManagerAssignment);
 
         if (!await employeeRepo.UserHasEmployeeProfileAsync(dto.EmployeeUserId))
-            throw new KeyNotFoundException(ErrorMessages.EmployeeProfileRequired);
+            throw new NotFoundException(ErrorMessages.EmployeeProfileRequired);
 
         return await employeeRepo.AssignManagerAsync(dto.EmployeeUserId, dto.ManagerUserId);
     }

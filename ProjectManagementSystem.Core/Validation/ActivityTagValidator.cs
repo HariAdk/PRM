@@ -1,28 +1,19 @@
 using ProjectManagementSystem.Core.Constants;
-using ProjectManagementSystem.Core.Enums;
+using ProjectManagementSystem.Core.Exceptions;
 
 namespace ProjectManagementSystem.Core.Validation;
 
 public static class ActivityTagValidator
 {
-    private static readonly HashSet<string> AllowedTags =
-        ActivityTags.All.ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-    public static void Validate(string activityTags)
+    public static void Validate(string tags)
     {
-        if (string.IsNullOrWhiteSpace(activityTags))
-            throw new InvalidOperationException(ErrorMessages.ActivityTagRequired);
+        if (string.IsNullOrWhiteSpace(tags))
+            throw new BusinessRuleException(ErrorMessages.ActivityTagRequired);
 
-        var tags = activityTags
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        if (tags.Length == 0)
-            throw new InvalidOperationException(ErrorMessages.ActivityTagRequired);
-
-        foreach (var tag in tags)
+        foreach (var tag in tags.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
-            if (!AllowedTags.Contains(tag))
-                throw new InvalidOperationException(ErrorMessages.InvalidActivityTag(tag));
+            if (!ActivityTags.All.Contains(tag, StringComparer.OrdinalIgnoreCase))
+                throw new ValidationException(ErrorMessages.InvalidActivityTag(tag));
         }
     }
 
@@ -30,8 +21,10 @@ public static class ActivityTagValidator
     {
         foreach (var (hours, tags) in entries)
         {
-            if (hours > 0)
-                Validate(tags);
+            if (hours <= 0)
+                continue;
+
+            Validate(tags);
         }
     }
 }

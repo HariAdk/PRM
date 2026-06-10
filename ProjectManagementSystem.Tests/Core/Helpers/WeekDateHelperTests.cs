@@ -1,3 +1,4 @@
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Helpers;
 
 namespace ProjectManagementSystem.Tests.Core.Helpers;
@@ -17,7 +18,7 @@ public class WeekDateHelperTests
     public void EnsureWeekNotInFuture_ThrowsForFutureWeek()
     {
         var futureMonday = WeekDateHelper.GetMondayOfWeek(DateTime.Today).AddDays(7);
-        Assert.Throws<InvalidOperationException>(() => WeekDateHelper.EnsureWeekNotInFuture(futureMonday));
+        Assert.Throws<BusinessRuleException>(() => WeekDateHelper.EnsureWeekNotInFuture(futureMonday));
     }
 
     [Fact]

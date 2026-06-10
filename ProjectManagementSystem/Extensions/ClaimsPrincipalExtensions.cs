@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using ProjectManagementSystem.Core.Constants;
+using ProjectManagementSystem.Core.Exceptions;
 
 namespace ProjectManagementSystem.Extensions;
 
@@ -12,7 +13,7 @@ public static class ClaimsPrincipalExtensions
             ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrEmpty(value) || !int.TryParse(value, out var userId) || userId <= 0)
-            throw new UnauthorizedAccessException(ErrorMessages.InvalidUserIdentity);
+            throw new UnauthorizedAppException(ErrorMessages.InvalidUserIdentity);
 
         return userId;
     }
@@ -20,6 +21,6 @@ public static class ClaimsPrincipalExtensions
     public static void EnsureUserIdMatches(this ClaimsPrincipal user, int requestedUserId)
     {
         if (user.GetCurrentUserId() != requestedUserId)
-            throw new UnauthorizedAccessException(ErrorMessages.CannotChangeOtherUserPassword);
+            throw new ForbiddenAppException(ErrorMessages.CannotChangeOtherUserPassword);
     }
 }

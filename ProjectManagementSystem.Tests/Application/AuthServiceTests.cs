@@ -1,6 +1,7 @@
 using Moq;
 using ProjectManagementSystem.Application;
 using ProjectManagementSystem.Core.Constants;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.Auth;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
@@ -23,7 +24,7 @@ public class AuthServiceTests
     {
         _userRepo.Setup(r => r.GetCredentialsAsync("unknown")).ReturnsAsync((ValueTuple<string, bool, bool, int, string, string>?)null);
 
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(
+        var ex = await Assert.ThrowsAsync<UnauthorizedAppException>(
             () => _sut.LoginAsync(new LoginRequestDto { Username = "unknown", Password = "x" }));
 
         Assert.Equal(ErrorMessages.InvalidCredentials, ex.Message);
@@ -35,7 +36,7 @@ public class AuthServiceTests
         _userRepo.Setup(r => r.GetCredentialsAsync("user")).ReturnsAsync(
             ("hash", false, false, 1, "User", RoleNames.Employee));
 
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(
+        var ex = await Assert.ThrowsAsync<UnauthorizedAppException>(
             () => _sut.LoginAsync(new LoginRequestDto { Username = "user", Password = "Pass1234" }));
 
         Assert.Equal(ErrorMessages.AccountDeactivated, ex.Message);
@@ -48,7 +49,7 @@ public class AuthServiceTests
         _userRepo.Setup(r => r.GetCredentialsAsync("user")).ReturnsAsync(
             (hash, false, true, 1, "User", RoleNames.Employee));
 
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(
+        var ex = await Assert.ThrowsAsync<UnauthorizedAppException>(
             () => _sut.LoginAsync(new LoginRequestDto { Username = "user", Password = "WrongPass1" }));
 
         Assert.Equal(ErrorMessages.InvalidCredentials, ex.Message);
@@ -59,7 +60,7 @@ public class AuthServiceTests
     {
         var dto = new ChangePasswordDto { NewPassword = "NewPass123", ConfirmPassword = "Different1" };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => _sut.ChangePasswordAsync(1, dto));
 
         Assert.Equal(ErrorMessages.PasswordsDoNotMatch, ex.Message);

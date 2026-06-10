@@ -1,7 +1,8 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ProjectManagementSystem.Core.Constants;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Interfaces.AI;
 
 namespace ProjectManagementSystem.Infrastructure.AI;
@@ -41,7 +42,7 @@ public sealed class GeminiAiProvider(
         if (!response.IsSuccessStatusCode)
         {
             logger.LogWarning("Gemini API error {Status}: {Body}", response.StatusCode, body);
-            throw new InvalidOperationException(ErrorMessages.GeminiApiError((int)response.StatusCode));
+            throw new BusinessRuleException(ErrorMessages.GeminiApiError((int)response.StatusCode));
         }
 
         using var doc = JsonDocument.Parse(body);
@@ -53,7 +54,7 @@ public sealed class GeminiAiProvider(
             .GetString();
 
         if (string.IsNullOrWhiteSpace(text))
-            throw new InvalidOperationException(ErrorMessages.GeminiEmptyResponse);
+            throw new BusinessRuleException(ErrorMessages.GeminiEmptyResponse);
 
         return text.Trim();
     }

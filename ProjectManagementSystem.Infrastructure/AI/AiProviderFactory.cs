@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Config;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Interfaces.AI;
 
 namespace ProjectManagementSystem.Infrastructure.AI;
@@ -18,7 +19,7 @@ public sealed class AiProviderFactory(
     public IAiProvider Create(SystemConfigDto config)
     {
         if (!IsConfigured(config))
-            throw new InvalidOperationException(ErrorMessages.LlmNotConfigured);
+            throw new BusinessRuleException(ErrorMessages.LlmNotConfigured);
 
         var provider = config.LlmProvider.Trim();
         var apiKey = config.LlmApiKey.Trim();

@@ -7,7 +7,6 @@ using ProjectManagementSystem.Core.Interfaces.Services;
 
 namespace ProjectManagementSystem.Controllers;
 
-/// <summary>Screen 3.2 ? Manage Projects (Admin only)</summary>
 [ApiController]
 [Route("api/projects")]
 [Authorize(Roles = RoleNames.Admin)]

@@ -1,3 +1,4 @@
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Validation;
 
 namespace ProjectManagementSystem.Tests.Core.Validation;
@@ -17,6 +18,6 @@ public class PasswordValidatorTests
     [InlineData("NoDigitsHere")]
     public void Validate_RejectsWeakPassword(string password)
     {
-        Assert.Throws<InvalidOperationException>(() => PasswordValidator.Validate(password));
+        Assert.Throws<BusinessRuleException>(() => PasswordValidator.Validate(password));
     }
 }

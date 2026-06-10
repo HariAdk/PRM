@@ -1,4 +1,5 @@
 using ProjectManagementSystem.Core.Constants;
+using ProjectManagementSystem.Core.Exceptions;
 
 namespace ProjectManagementSystem.Core.Helpers;
 
@@ -19,7 +20,7 @@ public static class WeekDateHelper
             return null;
 
         if (!DateTime.TryParse(value, out var parsed))
-            throw new FormatException(ErrorMessages.InvalidWeekStartDate);
+            throw new ValidationException(ErrorMessages.InvalidWeekStartDate);
 
         return GetMondayOfWeek(parsed);
     }
@@ -28,6 +29,6 @@ public static class WeekDateHelper
     {
         var currentWeek = GetMondayOfWeek(DateTime.Today);
         if (weekMonday > currentWeek)
-            throw new InvalidOperationException(ErrorMessages.FutureWeekTimesheet);
+            throw new BusinessRuleException(ErrorMessages.FutureWeekTimesheet);
     }
 }

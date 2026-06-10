@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Employee;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Infrastructure.Data;
@@ -85,7 +86,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
             .Include(e => e.User)
             .Include(e => e.ReportingManager)
             .FirstOrDefaultAsync(e => e.UserId == employeeUserId)
-            ?? throw new KeyNotFoundException(ErrorMessages.EmployeeProfileNotFoundForUser(employeeUserId));
+            ?? throw new NotFoundException(ErrorMessages.EmployeeProfileNotFoundForUser(employeeUserId));
 
         employee.ManagerId = managerUserId;
         await db.SaveChangesAsync();
@@ -128,7 +129,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
         var employee = await db.Employees
             .Include(e => e.User)
             .FirstOrDefaultAsync(e => e.Id == id)
-            ?? throw new KeyNotFoundException(ErrorMessages.EmployeeNotFoundById(id));
+            ?? throw new NotFoundException(ErrorMessages.EmployeeNotFoundById(id));
         mapper.Map(dto, employee);
         await db.SaveChangesAsync();
         return mapper.Map<EmployeeDto>(employee);
@@ -137,7 +138,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
     public async Task DeactivateAsync(int id)
     {
         var employee = await db.Employees.FindAsync(id)
-                       ?? throw new KeyNotFoundException(ErrorMessages.EmployeeNotFoundById(id));
+                       ?? throw new NotFoundException(ErrorMessages.EmployeeNotFoundById(id));
 
         var activeAllocations = await db.Allocations
             .Where(a => a.EmployeeId == id && a.IsActive)
@@ -167,7 +168,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
     public async Task SetStatusAsync(int employeeId, EmployeeStatus status)
     {
         var employee = await db.Employees.FindAsync(employeeId)
-                       ?? throw new KeyNotFoundException(ErrorMessages.EmployeeNotFoundById(employeeId));
+                       ?? throw new NotFoundException(ErrorMessages.EmployeeNotFoundById(employeeId));
         employee.Status = status;
         await db.SaveChangesAsync();
     }

@@ -5,6 +5,7 @@ using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Helpers;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Validation;
 
 namespace ProjectManagementSystem.Application;
@@ -93,11 +94,11 @@ public class EmployeePortalService(
         WeekDateHelper.EnsureWeekNotInFuture(weekMonday);
 
         if (await timesheetRepo.HasSubmittedForWeekAsync(employee.Id, weekMonday))
-            throw new InvalidOperationException(ErrorMessages.TimesheetAlreadySubmitted);
+            throw new BusinessRuleException(ErrorMessages.TimesheetAlreadySubmitted);
 
         var weekAllocations = await GetWeekAllocationsAsync(employee.Id, weekMonday, config.MaxWeeklyHours);
         if (weekAllocations.Count == 0)
-            throw new InvalidOperationException(ErrorMessages.NoAllocationsForWeek);
+            throw new BusinessRuleException(ErrorMessages.NoAllocationsForWeek);
 
         ValidateProjectEntries(dto.Projects, weekAllocations, config.MaxWeeklyHours);
 
@@ -118,14 +119,14 @@ public class EmployeePortalService(
         };
 
         if (createDto.Entries.Count == 0)
-            throw new InvalidOperationException(ErrorMessages.TimesheetHoursRequired);
+            throw new BusinessRuleException(ErrorMessages.TimesheetHoursRequired);
 
         var existing = await timesheetRepo.GetByEmployeeAndWeekAsync(employee.Id, weekMonday);
         if (existing?.Status == TimesheetStatus.Missed)
             return await timesheetRepo.ReplaceEntriesAndSubmitAsync(existing.TimesheetId, createDto);
 
         if (existing is not null)
-            throw new InvalidOperationException(ErrorMessages.TimesheetAlreadySubmitted);
+            throw new BusinessRuleException(ErrorMessages.TimesheetAlreadySubmitted);
 
         var timesheet = await timesheetRepo.CreateAsync(createDto);
         await timesheetRepo.SubmitAsync(timesheet.TimesheetId);
@@ -162,10 +163,10 @@ public class EmployeePortalService(
         int maxWeeklyHours)
     {
         if (entries.Count == 0)
-            throw new InvalidOperationException(ErrorMessages.TimesheetEntryRequired);
+            throw new BusinessRuleException(ErrorMessages.TimesheetEntryRequired);
 
         if (entries.Select(p => p.ProjectId).Distinct().Count() != entries.Count)
-            throw new InvalidOperationException(ErrorMessages.DuplicateTimesheetProject);
+            throw new BusinessRuleException(ErrorMessages.DuplicateTimesheetProject);
 
         var allowedProjectIds = weekAllocations.Select(a => a.ProjectId).ToHashSet();
         var maxByProject = weekAllocations.ToDictionary(a => a.ProjectId, a => a.MaxHours);
@@ -174,16 +175,16 @@ public class EmployeePortalService(
         foreach (var entry in entries)
         {
             if (entry.Hours < 0)
-                throw new InvalidOperationException(ErrorMessages.NegativeHours);
+                throw new BusinessRuleException(ErrorMessages.NegativeHours);
 
             if (!allowedProjectIds.Contains(entry.ProjectId))
             {
-                throw new InvalidOperationException(ErrorMessages.NotAllocatedToProject(entry.ProjectId));
+                throw new BusinessRuleException(ErrorMessages.NotAllocatedToProject(entry.ProjectId));
             }
 
             if (entry.Hours > maxByProject[entry.ProjectId])
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     ErrorMessages.ProjectHoursExceedMax(entry.ProjectId, maxByProject[entry.ProjectId]));
             }
 
@@ -195,7 +196,7 @@ public class EmployeePortalService(
 
         if (totalHours > maxWeeklyHours)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 ErrorMessages.TotalHoursExceedWeeklyMax(totalHours, maxWeeklyHours));
         }
     }
@@ -204,14 +205,14 @@ public class EmployeePortalService(
     {
         var employee = await employeeRepo.GetByUserIdAsync(userId);
         if (employee is null || !employee.IsActive)
-            throw new InvalidOperationException(ErrorMessages.NoEmployeeProfile);
+            throw new BusinessRuleException(ErrorMessages.NoEmployeeProfile);
         return employee;
     }
 
     private async Task<Core.DTOs.Config.SystemConfigDto> RequireConfigAsync()
     {
         return await configRepo.GetAsync()
-               ?? throw new InvalidOperationException(ErrorMessages.SystemConfigNotFound);
+               ?? throw new BusinessRuleException(ErrorMessages.SystemConfigNotFound);
     }
 
     private async Task<List<EmployeeWeekAllocationDto>> GetWeekAllocationsAsync(

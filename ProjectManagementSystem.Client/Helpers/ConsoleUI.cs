@@ -320,7 +320,6 @@ public static class ConsoleUI
         status.Replace(" ", "_").ToUpperInvariant();
 }
 
-/// <summary>Fixed-width aligned table for console output.</summary>
 public sealed class ConsoleTable
 {
     private readonly int[] _widths;

@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.Constants;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.Timesheet;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
@@ -139,10 +140,10 @@ public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRe
         var timesheet = await db.Timesheets
             .Include(t => t.Entries)
             .FirstOrDefaultAsync(t => t.Id == timesheetId)
-            ?? throw new KeyNotFoundException(ErrorMessages.TimesheetNotFoundById(timesheetId));
+            ?? throw new NotFoundException(ErrorMessages.TimesheetNotFoundById(timesheetId));
 
         if (timesheet.Status == TimesheetStatus.Submitted)
-            throw new InvalidOperationException(ErrorMessages.TimesheetAlreadySubmitted);
+            throw new BusinessRuleException(ErrorMessages.TimesheetAlreadySubmitted);
 
         db.TimesheetEntries.RemoveRange(timesheet.Entries);
 

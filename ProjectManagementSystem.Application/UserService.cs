@@ -3,6 +3,7 @@ using ProjectManagementSystem.Core.DTOs.User;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Validation;
 
 namespace ProjectManagementSystem.Application;
@@ -17,7 +18,7 @@ public class UserService(IUserRepository userRepo, IEmployeeRepository employeeR
         PasswordValidator.Validate(dto.TemporaryPassword);
 
         if (await userRepo.ExistsAsync(dto.Username, dto.Email))
-            throw new InvalidOperationException(ErrorMessages.DuplicateUsernameOrEmail);
+            throw new BusinessRuleException(ErrorMessages.DuplicateUsernameOrEmail);
 
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.TemporaryPassword);
         var user = await userRepo.CreateAsync(dto, hash, forcePasswordChange: true);

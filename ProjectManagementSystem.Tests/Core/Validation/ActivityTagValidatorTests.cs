@@ -1,4 +1,5 @@
 using ProjectManagementSystem.Core.Constants;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Validation;
 
 namespace ProjectManagementSystem.Tests.Core.Validation;
@@ -17,13 +18,13 @@ public class ActivityTagValidatorTests
     [InlineData("   ")]
     public void Validate_ThrowsWhenEmpty(string tags)
     {
-        Assert.Throws<InvalidOperationException>(() => ActivityTagValidator.Validate(tags));
+        Assert.Throws<BusinessRuleException>(() => ActivityTagValidator.Validate(tags));
     }
 
     [Fact]
     public void Validate_ThrowsWhenTagNotInList()
     {
-        Assert.Throws<InvalidOperationException>(() => ActivityTagValidator.Validate("Not A Real Tag"));
+        Assert.Throws<ValidationException>(() => ActivityTagValidator.Validate("Not A Real Tag"));
     }
 
     [Fact]
@@ -38,7 +39,7 @@ public class ActivityTagValidatorTests
     [Fact]
     public void ValidateEntryTags_RequiresTagsWhenHoursPositive()
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             ActivityTagValidator.ValidateEntryTags([(8m, "")]));
     }
 }

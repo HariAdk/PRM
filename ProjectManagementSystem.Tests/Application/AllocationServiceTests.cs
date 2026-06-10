@@ -1,6 +1,7 @@
 using Moq;
 using ProjectManagementSystem.Application;
 using ProjectManagementSystem.Core.Constants;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.DTOs.Employee;
 using ProjectManagementSystem.Core.DTOs.Project;
@@ -31,7 +32,7 @@ public class AllocationServiceTests
 
         var dto = CreateValidAllocationDto();
 
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(
+        var ex = await Assert.ThrowsAsync<ForbiddenAppException>(
             () => _sut.CreateAsync(dto, managerUserId: 10));
 
         Assert.Equal(ErrorMessages.EmployeeNotOnTeam, ex.Message);
@@ -64,7 +65,7 @@ public class AllocationServiceTests
 
         var dto = CreateValidAllocationDto(utilisation: 30);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(dto, managerUserId: 10));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CreateAsync(dto, managerUserId: 10));
     }
 
     [Fact]
@@ -81,7 +82,7 @@ public class AllocationServiceTests
             ToDate = new DateOnly(2026, 6, 1)
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(dto));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CreateAsync(dto));
     }
 
     [Fact]
@@ -93,7 +94,7 @@ public class AllocationServiceTests
             .Setup(r => r.GetByIdAsync(201))
             .ReturnsAsync(new ProjectDto { Id = 201, Status = "Completed" });
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(CreateValidAllocationDto()));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CreateAsync(CreateValidAllocationDto()));
     }
 
     [Fact]
@@ -107,7 +108,7 @@ public class AllocationServiceTests
             .Setup(r => r.IsAllocatableResourceAsync(1))
             .ReturnsAsync(true);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(CreateValidAllocationDto()));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CreateAsync(CreateValidAllocationDto()));
     }
 
     [Fact]
@@ -123,7 +124,7 @@ public class AllocationServiceTests
                 IsActive = true
             });
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => _sut.EndAsync(5, new DateOnly(2026, 5, 1)));
     }
 
