@@ -1,12 +1,13 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.User;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
 /// <summary>Screen 3.4 � Manage Users</summary>
-public class ManageUsersScreen(ApiClient api)
+public class ManageUsersScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

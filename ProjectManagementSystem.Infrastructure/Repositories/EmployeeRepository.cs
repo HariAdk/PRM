@@ -38,10 +38,6 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
         return mapper.Map<IEnumerable<EmployeeDto>>(list);
     }
 
-    /// <summary>
-    /// Active employees whose user account has role Employee — individual contributors
-    /// eligible for project allocation (Resource Dashboard, AI skill match).
-    /// </summary>
     public async Task<IEnumerable<EmployeeDto>> GetAllocatableResourcesAsync()
     {
         var list = await db.Employees
@@ -133,10 +129,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
             .Include(e => e.User)
             .FirstOrDefaultAsync(e => e.Id == id)
             ?? throw new KeyNotFoundException(ErrorMessages.EmployeeNotFoundById(id));
-        employee.FullName = dto.FullName;
-        employee.Email = dto.Email;
-        employee.Department = dto.Department;
-        employee.Designation = dto.Designation;
+        mapper.Map(dto, employee);
         await db.SaveChangesAsync();
         return mapper.Map<EmployeeDto>(employee);
     }

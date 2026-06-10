@@ -2,7 +2,6 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.User;
-using ProjectManagementSystem.Core.Validation;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Infrastructure.Data;
 using ProjectManagementSystem.Infrastructure.Models;
@@ -25,17 +24,10 @@ public class UserRepository(AppDbContext db, IMapper mapper) : IUserRepository
 
     public async Task<UserDto> CreateAsync(CreateUserDto dto, string passwordHash, bool forcePasswordChange)
     {
-        var user = new User
-        {
-            FullName = dto.FullName,
-            Email = dto.Email,
-            Username = dto.Username,
-            PasswordHash = passwordHash,
-            Role = EnumParseHelper.ParseUserRole(dto.Role),
-            IsActive = true,
-            ForcePasswordChange = forcePasswordChange,
-            CreatedAt = DateTime.UtcNow
-        };
+        var user = mapper.Map<User>(dto);
+        user.PasswordHash = passwordHash;
+        user.ForcePasswordChange = forcePasswordChange;
+        user.CreatedAt = DateTime.UtcNow;
         db.Users.Add(user);
         await db.SaveChangesAsync();
         return mapper.Map<UserDto>(user);

@@ -1,3 +1,4 @@
+using ProjectManagementSystem.Core.DTOs.AI;
 using ProjectManagementSystem.Core.Helpers;
 
 namespace ProjectManagementSystem.Tests.Core.Helpers;
@@ -5,47 +6,91 @@ namespace ProjectManagementSystem.Tests.Core.Helpers;
 public class SkillRequirementMatcherTests
 {
     [Fact]
-    public void ScoreProfile_MatchesTypeScriptKeyword()
+    public void TryParseMinAvailabilityPercent_Parses100Percent()
+    {
+        var pct = SkillRequirementMatcher.TryParseMinAvailabilityPercent(
+            "I want a developer with javascript domain and 100% availability");
+
+        Assert.Equal(100, pct);
+    }
+
+    [Fact]
+    public void ScoreProfile_MatchesJavaScriptKeyword()
     {
         var score = SkillRequirementMatcher.ScoreProfile(
-            "need someone with typescript experience",
-            "TypeScript, React, Node.js",
+            "javascript developer",
+            "JavaScript, HTML, CSS",
             "Engineering",
-            "API development");
+            "Frontend development");
 
         Assert.True(score > 0);
     }
 
     [Fact]
-    public void ScoreProfile_ReturnsZeroWhenNoKeywordOverlap()
+    public void ScoreProfile_DoesNotMatchDotnetForJavaScript()
     {
         var score = SkillRequirementMatcher.ScoreProfile(
-            "need java backend developer",
-            "Python, Django",
-            "QA",
-            "manual testing");
+            "javascript developer",
+            "Dotnet, React",
+            "Engineering",
+            "Backend API Development");
 
         Assert.Equal(0, score);
     }
 
     [Fact]
-    public void ScoreProfile_MatchesRecentActivity()
+    public void MeetsRequirement_RejectsLowAvailability()
     {
-        var score = SkillRequirementMatcher.ScoreProfile(
-            "kubernetes devops",
-            "Linux",
-            "DevOps",
-            "Kubernetes, CI/CD");
+        var requirement = "javascript developer with 100% availability";
+        var candidate = new SkillMatchCandidateDto
+        {
+            EmployeeId = 1,
+            Name = "Test",
+            Skills = "JavaScript",
+            AvailabilityPercent = 10
+        };
 
-        Assert.True(score > 0);
+        Assert.False(SkillRequirementMatcher.MeetsRequirement(requirement, candidate));
     }
 
     [Fact]
-    public void ExtractKeywords_IgnoresStopWords()
+    public void MeetsRequirement_AcceptsMatchingSkillAndAvailability()
     {
-        var keywords = SkillRequirementMatcher.ExtractKeywords("I need a developer with java");
+        var requirement = "javascript developer with 100% availability";
+        var candidate = new SkillMatchCandidateDto
+        {
+            EmployeeId = 1,
+            Name = "Test",
+            Skills = "JavaScript",
+            AvailabilityPercent = 100
+        };
 
-        Assert.Contains(keywords, k => k.Equals("java", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(keywords, k => k.Equals("need", StringComparison.OrdinalIgnoreCase));
+        Assert.True(SkillRequirementMatcher.MeetsRequirement(requirement, candidate));
+    }
+
+    [Fact]
+    public void MeetsRequirement_RejectsWrongSkillEvenWithAvailability()
+    {
+        var requirement = "javascript developer with 80% availability";
+        var candidate = new SkillMatchCandidateDto
+        {
+            EmployeeId = 1,
+            Name = "Test",
+            Skills = "Dotnet, React",
+            AvailabilityPercent = 80
+        };
+
+        Assert.False(SkillRequirementMatcher.MeetsRequirement(requirement, candidate));
+    }
+
+    [Fact]
+    public void ExtractSkillKeywords_ExcludesAvailabilityTokens()
+    {
+        var keywords = SkillRequirementMatcher.ExtractSkillKeywords(
+            "javascript developer 100% availability");
+
+        Assert.Contains(keywords, k => k.Equals("javascript", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(keywords, k => k.Equals("100", StringComparison.Ordinal));
+        Assert.DoesNotContain(keywords, k => k.Equals("availability", StringComparison.OrdinalIgnoreCase));
     }
 }

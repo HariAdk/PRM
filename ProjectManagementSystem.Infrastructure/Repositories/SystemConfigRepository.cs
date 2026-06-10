@@ -19,10 +19,7 @@ public class SystemConfigRepository(AppDbContext db, IMapper mapper) : ISystemCo
     {
         var config = await db.SystemConfigs.FirstOrDefaultAsync()
                      ?? throw new InvalidOperationException(ErrorMessages.SystemConfigMissing);
-        config.LlmProvider = dto.LlmProvider;
-        config.LlmApiKey = dto.LlmApiKey;
-        config.SchedulerIntervalHours = dto.SchedulerIntervalHours;
-        config.MaxWeeklyHours = dto.MaxWeeklyHours;
+        mapper.Map(dto, config);
         await db.SaveChangesAsync();
     }
 }

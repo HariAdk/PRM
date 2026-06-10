@@ -43,17 +43,7 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
 
     public async Task<ProjectDto> CreateAsync(CreateProjectDto dto)
     {
-        var project = new Project
-        {
-            Name = dto.Name,
-            Description = dto.Description,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
-            Status = Enum.Parse<ProjectStatus>(dto.Status, ignoreCase: true),
-            ManagerId = dto.ManagerId,
-            TotalStoryPoints = dto.TotalStoryPoints,
-            HealthStatus = ProjectHealth.OnTrack
-        };
+        var project = mapper.Map<Project>(dto);
         db.Projects.Add(project);
         await db.SaveChangesAsync();
         await db.Entry(project).Reference(p => p.Manager).LoadAsync();
@@ -64,13 +54,7 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
     {
         var project = await db.Projects.Include(p => p.Manager).FirstOrDefaultAsync(p => p.Id == id)
                       ?? throw new KeyNotFoundException(ErrorMessages.ProjectNotFoundById(id));
-        project.Name = dto.Name;
-        project.Description = dto.Description;
-        project.StartDate = dto.StartDate;
-        project.EndDate = dto.EndDate;
-        project.Status = Enum.Parse<ProjectStatus>(dto.Status, ignoreCase: true);
-        project.ManagerId = dto.ManagerId;
-        project.TotalStoryPoints = dto.TotalStoryPoints;
+        mapper.Map(dto, project);
         await db.SaveChangesAsync();
         await db.Entry(project).Reference(p => p.Manager).LoadAsync();
         return mapper.Map<ProjectDto>(project);
@@ -99,7 +83,7 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
         var milestone = await db.Milestones
             .FirstOrDefaultAsync(m => m.Id == milestoneId && m.ProjectId == projectId)
             ?? throw new KeyNotFoundException(ErrorMessages.MilestoneNotFound(milestoneId));
-        milestone.Status = Enum.Parse<MilestoneStatus>(dto.Status, ignoreCase: true);
+        mapper.Map(dto, milestone);
         await db.SaveChangesAsync();
         return mapper.Map<MilestoneDto>(milestone);
     }

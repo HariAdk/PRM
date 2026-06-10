@@ -1,5 +1,6 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.DTOs.Manager;
@@ -7,7 +8,7 @@ using ProjectManagementSystem.Core.DTOs.Manager;
 namespace ProjectManagementSystem.Client.Screens.Manager;
 
 /// <summary>Screen 4.2 — Allocate Resource</summary>
-public class AllocateResourceScreen(ApiClient api)
+public class AllocateResourceScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

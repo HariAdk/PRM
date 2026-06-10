@@ -1,11 +1,12 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.DTOs.Manager;
 
 namespace ProjectManagementSystem.Client.Screens.Manager;
 
 /// <summary>Screen 4.5 — AI Assistant</summary>
-public class AiAssistantScreen(ApiClient api)
+public class AiAssistantScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

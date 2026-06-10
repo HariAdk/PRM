@@ -1,10 +1,11 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 
 namespace ProjectManagementSystem.Client.Screens.Employee;
 
 /// <summary>Screen 5.3 — View My Allocations</summary>
-public class ViewMyAllocationsScreen(ApiClient api)
+public class ViewMyAllocationsScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

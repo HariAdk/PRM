@@ -82,26 +82,15 @@ public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRe
 
     public async Task<TimesheetDto> CreateAsync(CreateTimesheetDto dto)
     {
-        var timesheet = new Timesheet
-        {
-            EmployeeId = dto.EmployeeId,
-            WeekStartDate = DateOnly.FromDateTime(dto.WeekStartDate),
-            Status = TimesheetStatus.Draft,
-            TotalHours = dto.Entries.Sum(e => e.Hours)
-        };
-
+        var timesheet = mapper.Map<Timesheet>(dto);
         db.Timesheets.Add(timesheet);
         await db.SaveChangesAsync();
 
         foreach (var entryDto in dto.Entries)
         {
-            db.TimesheetEntries.Add(new TimesheetEntry
-            {
-                TimesheetId = timesheet.Id,
-                ProjectId = entryDto.ProjectId,
-                Hours = entryDto.Hours,
-                ActivityTags = entryDto.ActivityTags
-            });
+            var entry = mapper.Map<TimesheetEntry>(entryDto);
+            entry.TimesheetId = timesheet.Id;
+            db.TimesheetEntries.Add(entry);
         }
 
         await db.SaveChangesAsync();
@@ -159,13 +148,9 @@ public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRe
 
         foreach (var entryDto in dto.Entries)
         {
-            db.TimesheetEntries.Add(new TimesheetEntry
-            {
-                TimesheetId = timesheet.Id,
-                ProjectId = entryDto.ProjectId,
-                Hours = entryDto.Hours,
-                ActivityTags = entryDto.ActivityTags
-            });
+            var entry = mapper.Map<TimesheetEntry>(entryDto);
+            entry.TimesheetId = timesheet.Id;
+            db.TimesheetEntries.Add(entry);
         }
 
         timesheet.TotalHours = dto.Entries.Sum(e => e.Hours);

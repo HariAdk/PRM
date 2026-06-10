@@ -1,12 +1,13 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Employee;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
 /// <summary>Screen 3.1.4 — Manage Employee Skills</summary>
-public class ManageSkillsScreen(ApiClient api)
+public class ManageSkillsScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {
@@ -14,10 +15,17 @@ public class ManageSkillsScreen(ApiClient api)
         ConsoleUI.DrawBox("MANAGE SKILLS");
 
         var idStr = ConsoleUI.Prompt("Enter Employee ID");
-        if (!int.TryParse(idStr, out var empId)) { ConsoleUI.Error("Invalid ID."); ConsoleUI.PressAnyKey(); return; }
+        if (!int.TryParse(idStr, out var empId)) {
+            ConsoleUI.Error("Invalid ID.");
+            ConsoleUI.PressAnyKey(); return;
+        }
 
         var (emp, empErr) = await api.GetEmployeeAsync(empId);
-        if (empErr is not null) { ConsoleUI.Error(empErr); ConsoleUI.PressAnyKey(); return; }
+        if (empErr is not null) {
+            ConsoleUI.Error(empErr);
+            ConsoleUI.PressAnyKey();
+            return;
+        }
 
         while (true)
         {

@@ -12,6 +12,10 @@ internal static class AiPromptBuilder
         """
         You are a resource planning assistant for an IT services company.
         Rank employees for a project requirement using ONLY the candidate data provided.
+        Hard rules:
+        - Only include employees whose listed skills or recent activity match the required technology/domain.
+        - Only include employees whose freeCapacity meets any availability % stated in the requirement.
+        - If no candidate satisfies both, return {"matches":[]}.
         Respond with valid JSON only — no markdown fences, no extra text.
         JSON shape:
         {"matches":[{"employeeId":1,"reason":"plain English explanation"}]}
@@ -163,6 +167,19 @@ internal static class AiResponseParser
         }
     }
 
+    public static List<AIMatchedEmployeeDto> ValidateSkillMatches(
+        IReadOnlyList<AIMatchedEmployeeDto> matches,
+        string requirement,
+        IReadOnlyList<SkillMatchCandidateDto> candidates)
+    {
+        var candidateMap = candidates.ToDictionary(c => c.EmployeeId);
+
+        return matches
+            .Where(m => candidateMap.TryGetValue(m.EmployeeId, out var candidate) &&
+                        SkillRequirementMatcher.MeetsRequirement(requirement, candidate))
+            .ToList();
+    }
+
     public static string ParseRiskSummaryResponse(string llmResponse) =>
         llmResponse.Trim().Trim('"');
 
@@ -193,6 +210,7 @@ internal static class AiFallbackMatcher
         string requirement)
     {
         var matches = candidates
+            .Where(c => SkillRequirementMatcher.MeetsRequirement(requirement, c))
             .Select(c => new
             {
                 Candidate = c,

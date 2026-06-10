@@ -1,11 +1,12 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens.Manager;
 
 /// <summary>Screen 4.1 — Resource Dashboard</summary>
-public class ResourceDashboardScreen(ApiClient api)
+public class ResourceDashboardScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

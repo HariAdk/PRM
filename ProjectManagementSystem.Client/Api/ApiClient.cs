@@ -13,10 +13,6 @@ using ProjectManagementSystem.Core.DTOs.Timesheet;
 
 namespace ProjectManagementSystem.Client.Api;
 
-/// <summary>
-/// Single HTTP wrapper for all API calls.
-/// Returns (data, errorMessage) tuples so screens never deal with exceptions.
-/// </summary>
 public class ApiClient
 {
     private readonly HttpClient _http;
@@ -28,7 +24,6 @@ public class ApiClient
 
     public ApiClient(string baseUrl)
     {
-        // Accept self-signed dev certificate without error
         var handler = new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback =

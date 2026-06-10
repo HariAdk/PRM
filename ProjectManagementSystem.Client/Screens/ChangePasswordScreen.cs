@@ -5,14 +5,8 @@ using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Auth;
 
 namespace ProjectManagementSystem.Client.Screens;
-
-/// <summary>
-/// Forced password change screen � shown before any menu on first login.
-/// Cannot be skipped.
-/// </summary>
 public class ChangePasswordScreen(ApiClient api, SessionContext session)
 {
-    /// <returns>true if password was changed successfully, false if aborted.</returns>
     public async Task<bool> ShowAsync()
     {
         while (true)

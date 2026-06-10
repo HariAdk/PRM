@@ -1,10 +1,11 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 
 namespace ProjectManagementSystem.Client.Screens.Employee;
 
 /// <summary>Screen 5.2 — View My Timesheets</summary>
-public class ViewTimesheetsScreen(ApiClient api)
+public class ViewTimesheetsScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

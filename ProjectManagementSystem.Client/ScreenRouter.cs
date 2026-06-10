@@ -1,33 +1,25 @@
-using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Client.Session;
-using ProjectManagementSystem.Client.Screens;
 
 namespace ProjectManagementSystem.Client;
 
 /// <summary>
-/// Routes the logged-in user to the correct role-based menu.
-/// Reads the role from SessionContext and delegates to the appropriate screen.
+/// Routes the logged-in user to the correct role-based menu via <see cref="IScreenFactory"/>.
 /// </summary>
-public class ScreenRouter(ApiClient api, SessionContext session)
+public class ScreenRouter(IScreenFactory screenFactory, SessionContext session)
 {
     public async Task RouteAsync()
     {
-        switch (session.Role.ToUpper())
+        try
         {
-            case "ADMIN":
-                await new AdminMenuScreen(api, session).ShowAsync();
-                break;
-            case "MANAGER":
-                await new ManagerMenuScreen(api, session).ShowAsync();
-                break;
-            case "EMPLOYEE":
-                await new EmployeeMenuScreen(api, session).ShowAsync();
-                break;
-            default:
-                ConsoleUI.Error($"Unknown role: {session.Role}. Contact system administrator.");
-                ConsoleUI.PressAnyKey();
-                break;
+            var menu = screenFactory.CreateRoleMenu(session.Role);
+            await menu.ShowAsync();
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            ConsoleUI.Error($"Unknown role: {session.Role}. Contact system administrator.");
+            ConsoleUI.PressAnyKey();
         }
     }
 }

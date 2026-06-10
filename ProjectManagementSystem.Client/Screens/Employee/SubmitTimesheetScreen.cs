@@ -1,12 +1,13 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Timesheet;
 
 namespace ProjectManagementSystem.Client.Screens.Employee;
 
 /// <summary>Screen 5.1 — Submit Timesheet</summary>
-public class SubmitTimesheetScreen(ApiClient api)
+public class SubmitTimesheetScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

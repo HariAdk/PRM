@@ -1,12 +1,12 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Project;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.2 — Manage Projects</summary>
-public class ManageProjectsScreen(ApiClient api)
+public class ManageProjectsScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {
@@ -52,13 +52,19 @@ public class ManageProjectsScreen(ApiClient api)
         if (ConsoleUI.PromptOption().ToUpper() == "B") return;
 
         if (!DateOnly.TryParseExact(startStr, UiFormats.DisplayDate, out var start) ||
-            !DateOnly.TryParseExact(endStr,   UiFormats.DisplayDate, out var end))
-        { ConsoleUI.Error("Invalid date format. Use DD-MM-YYYY."); ConsoleUI.PressAnyKey(); return; }
+            !DateOnly.TryParseExact(endStr,   UiFormats.DisplayDate, out var end)) {
+            ConsoleUI.Error("Invalid date format. Use DD-MM-YYYY.");
+            ConsoleUI.PressAnyKey();
+            return;
+        }
 
         if (!int.TryParse(managerIdStr, out var managerId) ||
             !int.TryParse(statusChoice, out var sc) || sc < 1 || sc > 3 ||
-            !int.TryParse(spStr, out var totalSp) || totalSp < 0)
-        { ConsoleUI.Error("Invalid input."); ConsoleUI.PressAnyKey(); return; }
+            !int.TryParse(spStr, out var totalSp) || totalSp < 0) {
+            ConsoleUI.Error("Invalid input.");
+            ConsoleUI.PressAnyKey();
+            return;
+        }
 
         var (data, error) = await api.CreateProjectAsync(new CreateProjectDto
         {

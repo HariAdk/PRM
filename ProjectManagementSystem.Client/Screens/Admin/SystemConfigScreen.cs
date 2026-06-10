@@ -1,12 +1,13 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Config;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
 /// <summary>Screen 3.5 � System Configuration</summary>
-public class SystemConfigScreen(ApiClient api)
+public class SystemConfigScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

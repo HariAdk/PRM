@@ -3,7 +3,6 @@ using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.DTOs.Manager;
 using ProjectManagementSystem.Core.DTOs.Project;
 using ProjectManagementSystem.Core.DTOs.Timesheet;
-using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Helpers;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;

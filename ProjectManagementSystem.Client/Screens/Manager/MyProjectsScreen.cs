@@ -1,10 +1,11 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 
 namespace ProjectManagementSystem.Client.Screens.Manager;
 
 /// <summary>Screen 4.3 — My Projects & Health View</summary>
-public class MyProjectsScreen(ApiClient api)
+public class MyProjectsScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

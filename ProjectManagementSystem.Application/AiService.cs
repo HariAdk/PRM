@@ -52,15 +52,21 @@ public class AiService(
                     userPrompt);
 
                 var parsed = AiResponseParser.ParseSkillMatchResponse(response, candidates);
-                if (parsed.Count > 0)
+                var validated = AiResponseParser.ValidateSkillMatches(parsed, request.Requirement, candidates);
+                if (validated.Count > 0)
                 {
                     logger.LogInformation(
                         "Skill match completed via {Provider} for project {ProjectId}",
                         provider.ProviderName, request.ProjectId);
-                    return new AISkillMatchResultDto { Matches = parsed, UsedFallback = false };
+                    return new AISkillMatchResultDto { Matches = validated, UsedFallback = false };
                 }
 
-                logger.LogWarning("LLM skill-match response could not be parsed; using fallback.");
+                if (parsed.Count > 0)
+                    logger.LogWarning(
+                        "LLM skill-match returned {Count} result(s) that failed requirement validation; using fallback.",
+                        parsed.Count);
+                else
+                    logger.LogWarning("LLM skill-match response could not be parsed; using fallback.");
             }
             catch (Exception ex)
             {
@@ -117,6 +123,8 @@ public class AiService(
         int managerUserId)
     {
         var requiredHours = AiRequirementParser.TryParseWeeklyHours(requirement);
+        var minAvailability = SkillRequirementMatcher.TryParseMinAvailabilityPercent(requirement);
+        var skillFilterRequired = SkillRequirementMatcher.HasSkillConstraints(requirement);
         var allEmployees = await employeeRepo.GetTeamAllocatableResourcesAsync(managerUserId);
         var allAllocations = (await allocationRepo.GetAllActiveAsync()).ToList();
         var today = DateOnly.FromDateTime(DateTime.Today);
@@ -133,6 +141,9 @@ public class AiService(
             var availability = AllocationLimits.MaxTotalUtilisationPercent - allocated;
             if (availability <= 0) continue;
 
+            if (minAvailability.HasValue && availability < minAvailability.Value)
+                continue;
+
             var freeHours = maxWeeklyHours * availability / AllocationLimits.MaxTotalUtilisationPercent;
             if (requiredHours.HasValue && freeHours < requiredHours.Value)
                 continue;
@@ -140,16 +151,22 @@ public class AiService(
             var skills = await skillRepo.GetSkillsByEmployeeAsync(emp.Id);
             var activityTags = await timesheetRepo.GetRecentActivityTagsAsync(emp.Id, 3);
             var skillNames = skills.Select(s => s.SkillName).ToList();
+            var skillsCsv = string.Join(", ", skillNames.Take(5));
+            var activityCsv = string.Join(", ", activityTags.Take(3));
+
+            if (skillFilterRequired &&
+                !SkillRequirementMatcher.MeetsSkillKeywords(requirement, skillsCsv, emp.Department, activityCsv))
+                continue;
 
             candidates.Add(new SkillMatchCandidateDto
             {
                 EmployeeId = emp.Id,
                 Name = emp.FullName,
                 Department = emp.Department,
-                Skills = string.Join(", ", skillNames.Take(5)),
+                Skills = skillsCsv,
                 AvailabilityPercent = availability,
                 FreeHoursPerWeek = freeHours,
-                RecentActivity = string.Join(", ", activityTags.Take(3))
+                RecentActivity = activityCsv
             });
         }
 

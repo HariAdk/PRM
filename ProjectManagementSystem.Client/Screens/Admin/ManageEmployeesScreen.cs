@@ -1,12 +1,12 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Employee;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.1 — Manage Employees (BRD V4: no Add Employee — profiles created via Manage Users)</summary>
-public class ManageEmployeesScreen(ApiClient api)
+public class ManageEmployeesScreen(ApiClient api, IScreenFactory screenFactory) : IScreen
 {
     public async Task ShowAsync()
     {
@@ -15,26 +15,30 @@ public class ManageEmployeesScreen(ApiClient api)
             Console.Clear();
             ConsoleUI.DrawBox("MANAGE EMPLOYEES");
 
-            ConsoleUI.Menu(1, "View All Employees");
-            ConsoleUI.Menu(2, "Update Employee");
-            ConsoleUI.Menu(3, "Deactivate Employee");
-            ConsoleUI.Menu(4, "Manage Employee Skills");
-            ConsoleUI.Menu(5, "Assign Manager");
-            ConsoleUI.Menu(6, "Back");
+            ConsoleUI.Menu((int)AdminEmployeeMenuAction.ViewAllEmployees, "View All Employees");
+            ConsoleUI.Menu((int)AdminEmployeeMenuAction.UpdateEmployee, "Update Employee");
+            ConsoleUI.Menu((int)AdminEmployeeMenuAction.DeactivateEmployee, "Deactivate Employee");
+            ConsoleUI.Menu((int)AdminEmployeeMenuAction.ManageSkills, "Manage Employee Skills");
+            ConsoleUI.Menu((int)AdminEmployeeMenuAction.AssignManager, "Assign Manager");
+            ConsoleUI.Menu((int)AdminEmployeeMenuAction.Back, "Back");
 
-            var opt = ConsoleUI.PromptOption();
-            switch (opt)
+            if (!MenuOptionParser.TryParse(ConsoleUI.PromptOption(), out AdminEmployeeMenuAction action))
             {
-                case "1": await ViewAllEmployeesAsync();     break;
-                case "2": await UpdateEmployeeAsync();       break;
-                case "3": await DeactivateEmployeeAsync();   break;
-                case "4": await new ManageSkillsScreen(api).ShowAsync(); break;
-                case "5": await AssignManagerAsync();        break;
-                case "6": return;
-                default:
-                    ConsoleUI.Error("Invalid option.");
-                    ConsoleUI.PressAnyKey();
+                ConsoleUI.Error("Invalid option.");
+                ConsoleUI.PressAnyKey();
+                continue;
+            }
+
+            switch (action)
+            {
+                case AdminEmployeeMenuAction.ViewAllEmployees: await ViewAllEmployeesAsync(); break;
+                case AdminEmployeeMenuAction.UpdateEmployee: await UpdateEmployeeAsync(); break;
+                case AdminEmployeeMenuAction.DeactivateEmployee: await DeactivateEmployeeAsync(); break;
+                case AdminEmployeeMenuAction.ManageSkills:
+                    await screenFactory.CreateAdminEmployeeScreen(AdminEmployeeMenuAction.ManageSkills).ShowAsync();
                     break;
+                case AdminEmployeeMenuAction.AssignManager: await AssignManagerAsync(); break;
+                case AdminEmployeeMenuAction.Back: return;
             }
         }
     }
@@ -120,7 +124,10 @@ public class ManageEmployeesScreen(ApiClient api)
         if (!int.TryParse(idStr, out var id)) { ConsoleUI.Error("Invalid ID."); ConsoleUI.PressAnyKey(); return; }
 
         var (emp, err) = await api.GetEmployeeAsync(id);
-        if (err is not null) { ConsoleUI.Error(err); ConsoleUI.PressAnyKey(); return; }
+        if (err is not null) {
+            ConsoleUI.Error(err);
+            ConsoleUI.PressAnyKey(); return;
+        }
 
         ConsoleUI.BlankLine();
         Console.WriteLine($"Current: {emp!.FullName} | {emp.Department} | {emp.Designation}");
@@ -154,10 +161,17 @@ public class ManageEmployeesScreen(ApiClient api)
         ConsoleUI.DrawBox("DEACTIVATE EMPLOYEE");
 
         var idStr = ConsoleUI.Prompt("Enter Employee ID");
-        if (!int.TryParse(idStr, out var id)) { ConsoleUI.Error("Invalid ID."); ConsoleUI.PressAnyKey(); return; }
+        if (!int.TryParse(idStr, out var id)) {
+            ConsoleUI.Error("Invalid ID."); 
+            ConsoleUI.PressAnyKey(); return;
+        }
 
         var (emp, err) = await api.GetEmployeeAsync(id);
-        if (err is not null) { ConsoleUI.Error(err); ConsoleUI.PressAnyKey(); return; }
+        if (err is not null) {
+            ConsoleUI.Error(err);
+            ConsoleUI.PressAnyKey();
+            return; 
+        }
 
         ConsoleUI.BlankLine();
         ConsoleUI.SubHeader(emp!.FullName);

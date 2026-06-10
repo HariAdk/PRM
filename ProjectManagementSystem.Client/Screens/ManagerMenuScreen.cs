@@ -1,13 +1,13 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Client.Session;
-using ProjectManagementSystem.Client.Screens.Manager;
 using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens;
 
-/// <summary>Screen 4 � Manager Menu</summary>
-public class ManagerMenuScreen(ApiClient api, SessionContext session)
+/// <summary>Screen 4 — Manager Menu</summary>
+public class ManagerMenuScreen(ApiClient api, SessionContext session, IScreenFactory screenFactory) : IScreen
 {
     public async Task ShowAsync()
     {
@@ -17,30 +17,28 @@ public class ManagerMenuScreen(ApiClient api, SessionContext session)
             var now = DateTime.Now.ToString(UiFormats.DisplayDateTimeShort);
             ConsoleUI.DrawBox($"Welcome, {session.FullName}!  |  {now}");
 
-            ConsoleUI.Menu(1, "Resource Dashboard");
-            ConsoleUI.Menu(2, "Allocate Resource");
-            ConsoleUI.Menu(3, "My Projects");
-            ConsoleUI.Menu(4, "Timesheets");
-            ConsoleUI.Menu(5, "AI Assistant");
-            ConsoleUI.Menu(6, "Logout");
+            ConsoleUI.Menu((int)ManagerMenuAction.ResourceDashboard, "Resource Dashboard");
+            ConsoleUI.Menu((int)ManagerMenuAction.AllocateResource, "Allocate Resource");
+            ConsoleUI.Menu((int)ManagerMenuAction.MyProjects, "My Projects");
+            ConsoleUI.Menu((int)ManagerMenuAction.Timesheets, "Timesheets");
+            ConsoleUI.Menu((int)ManagerMenuAction.AiAssistant, "AI Assistant");
+            ConsoleUI.Menu((int)ManagerMenuAction.Logout, "Logout");
 
-            var opt = ConsoleUI.PromptOption();
-            switch (opt)
+            if (!MenuOptionParser.TryParse(ConsoleUI.PromptOption(), out ManagerMenuAction action))
             {
-                case "1": await new ResourceDashboardScreen(api).ShowAsync(); break;
-                case "2": await new AllocateResourceScreen(api).ShowAsync(); break;
-                case "3": await new MyProjectsScreen(api).ShowAsync(); break;
-                case "4": await new TimesheetManagerScreen(api).ShowAsync(); break;
-                case "5": await new AiAssistantScreen(api).ShowAsync(); break;
-                case "6":
-                    session.Clear();
-                    api.ClearToken();
-                    return;
-                default:
-                    ConsoleUI.Error("Invalid option.");
-                    ConsoleUI.PressAnyKey();
-                    break;
+                ConsoleUI.Error("Invalid option.");
+                ConsoleUI.PressAnyKey();
+                continue;
             }
+
+            if (action == ManagerMenuAction.Logout)
+            {
+                session.Clear();
+                api.ClearToken();
+                return;
+            }
+
+            await screenFactory.CreateManagerScreen(action).ShowAsync();
         }
     }
 }

@@ -25,11 +25,7 @@ public class SkillRepository(AppDbContext db, IMapper mapper) : ISkillRepository
         var skill = await db.Skills.FirstOrDefaultAsync(s => s.Name.ToLower() == dto.SkillName.ToLower());
         if (skill is null)
         {
-            skill = new Skill
-            {
-                Name = dto.SkillName,
-                Category = Enum.Parse<SkillCategory>(dto.Category, ignoreCase: true)
-            };
+            skill = mapper.Map<Skill>(dto);
             db.Skills.Add(skill);
             await db.SaveChangesAsync();
         }
@@ -38,12 +34,9 @@ public class SkillRepository(AppDbContext db, IMapper mapper) : ISkillRepository
             .AnyAsync(es => es.EmployeeId == employeeId && es.SkillId == skill.Id);
         if (already) throw new InvalidOperationException(ErrorMessages.EmployeeAlreadyHasSkill);
 
-        var es = new EmployeeSkill
-        {
-            EmployeeId = employeeId,
-            SkillId = skill.Id,
-            ProficiencyLevel = Enum.Parse<ProficiencyLevel>(dto.ProficiencyLevel, ignoreCase: true)
-        };
+        var es = mapper.Map<EmployeeSkill>(dto);
+        es.EmployeeId = employeeId;
+        es.SkillId = skill.Id;
         db.EmployeeSkills.Add(es);
         await db.SaveChangesAsync();
         es.Skill = skill;
@@ -57,7 +50,7 @@ public class SkillRepository(AppDbContext db, IMapper mapper) : ISkillRepository
             .FirstOrDefaultAsync(e => e.EmployeeId == employeeId && e.SkillId == skillId)
             ?? throw new KeyNotFoundException(ErrorMessages.SkillNotFoundForEmployee());
 
-        es.ProficiencyLevel = Enum.Parse<ProficiencyLevel>(dto.ProficiencyLevel, ignoreCase: true);
+        mapper.Map(dto, es);
         await db.SaveChangesAsync();
         return mapper.Map<EmployeeSkillDto>(es);
     }

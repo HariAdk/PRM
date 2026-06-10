@@ -1,11 +1,12 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens.Manager;
 
 /// <summary>Screen 4.4 — Team Timesheets</summary>
-public class TimesheetManagerScreen(ApiClient api)
+public class TimesheetManagerScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
     {

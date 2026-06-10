@@ -1,13 +1,13 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Client.Navigation;
 using ProjectManagementSystem.Client.Session;
-using ProjectManagementSystem.Client.Screens.Employee;
 using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens;
 
-/// <summary>Screen 5 � Employee Menu</summary>
-public class EmployeeMenuScreen(ApiClient api, SessionContext session)
+/// <summary>Screen 5 — Employee Menu</summary>
+public class EmployeeMenuScreen(ApiClient api, SessionContext session, IScreenFactory screenFactory) : IScreen
 {
     public async Task ShowAsync()
     {
@@ -20,26 +20,26 @@ public class EmployeeMenuScreen(ApiClient api, SessionContext session)
             await ShowReminderAsync();
 
             ConsoleUI.Divider();
-            ConsoleUI.Menu(1, "Submit Timesheet");
-            ConsoleUI.Menu(2, "View My Timesheets");
-            ConsoleUI.Menu(3, "View My Allocations");
-            ConsoleUI.Menu(4, "Logout");
+            ConsoleUI.Menu((int)EmployeeMenuAction.SubmitTimesheet, "Submit Timesheet");
+            ConsoleUI.Menu((int)EmployeeMenuAction.ViewMyTimesheets, "View My Timesheets");
+            ConsoleUI.Menu((int)EmployeeMenuAction.ViewMyAllocations, "View My Allocations");
+            ConsoleUI.Menu((int)EmployeeMenuAction.Logout, "Logout");
 
-            var opt = ConsoleUI.PromptOption();
-            switch (opt)
+            if (!MenuOptionParser.TryParse(ConsoleUI.PromptOption(), out EmployeeMenuAction action))
             {
-                case "1": await new SubmitTimesheetScreen(api).ShowAsync(); break;
-                case "2": await new ViewTimesheetsScreen(api).ShowAsync(); break;
-                case "3": await new ViewMyAllocationsScreen(api).ShowAsync(); break;
-                case "4":
-                    session.Clear();
-                    api.ClearToken();
-                    return;
-                default:
-                    ConsoleUI.Error("Invalid option.");
-                    ConsoleUI.PressAnyKey();
-                    break;
+                ConsoleUI.Error("Invalid option.");
+                ConsoleUI.PressAnyKey();
+                continue;
             }
+
+            if (action == EmployeeMenuAction.Logout)
+            {
+                session.Clear();
+                api.ClearToken();
+                return;
+            }
+
+            await screenFactory.CreateEmployeeScreen(action).ShowAsync();
         }
     }
 
