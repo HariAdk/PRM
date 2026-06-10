@@ -9,7 +9,7 @@
 The **Project & Resource Management (PRM) System** is a client-server application designed to streamline resource planning, project milestone tracking, timesheet management, and AI-driven skill matching/risk analysis.
 
 The system defines four primary actors:
-1. **Admin (System Operator)**: Manages core system data, users, employees, projects, and global configuration. Creates all user accounts (self-registration disabled per BRD V4).
+1. **Admin (System Operator)**: Manages core system data, users, employees, projects, and global configuration. Creates all user accounts.
 2. **Manager (Delivery Manager)**: Manages their **team** (employees assigned via `manager_id`), allocates resources, tracks project health, and reviews team timesheets.
 3. **Employee (Individual Contributor)**: Views active allocations, submits weekly timesheets with activity tags, and views historical timesheets.
 4. **Background Scheduler (System Actor)**: Automatically executes periodic updates to recompute resource utilization, project health, and flag missed timesheets.
@@ -121,7 +121,7 @@ flowchart TB
     UC_ManageUsers --> UC_ResetPassword
     UC_ManageUsers --> UC_DeactivateUser
     UC_ManageUsers --> UC_ReactivateUser
-    UC_CreateUser -.->|"<<include>>"| UC_AutoCreateEmployee : "when role = Employee"
+    UC_CreateUser -.->|"<<include>> when role = Employee"| UC_AutoCreateEmployee
 
     UC_ManageEmployees --> UC_ViewEmployees
     UC_ManageEmployees --> UC_UpdateEmployee
@@ -183,11 +183,9 @@ flowchart TB
     Scheduler --> UC_FlagMissedTimesheets
 
     %% General relationships
-    UC_CreateUser -.->|"<<include>>"| UC_ChangePassword : "forces change on login"
-    UC_ResetPassword -.->|"<<include>>"| UC_ChangePassword : "forces change on login"
+    UC_CreateUser -.->|"<<include>> forces change on login"| UC_ChangePassword
+    UC_ResetPassword -.->|"<<include>> forces change on login"| UC_ChangePassword
 ```
-
-> **BRD V4 removed:** Sign Up (self-registration) — removed from client and disabled at API (`POST /api/auth/signup` → 403).
 
 ---
 
@@ -201,8 +199,6 @@ The following use cases apply to all user accounts and govern access control.
 | **Login** | User enters username and password to receive a JWT session token. | Client startup (Option 1) | Credentials must match active record in DB. If `force_password_change` is `true`, must redirect to **Change Password**. |
 | **Logout** | Invalidates the local session context. | Any Main Menu | User must be logged in. |
 | **Change Password** | Sets a new password and resets the `force_password_change` flag to `false`. | Redirect on Login, or manual update | Must enter matching password and confirmation. Must meet password strength criteria. |
-
-> **Sign Up removed (BRD V4):** All accounts are created by Admin via **Create User Account**. The API signup endpoint returns 403 if called directly.
 
 ---
 
@@ -241,7 +237,7 @@ flowchart LR
 
 #### 3.2.1 Manage Users & Employees
 - **Create User Account**: Admins can create accounts for any role (Admin, Manager, Employee). The user is flagged with `force_password_change = true`.
-- **Auto-Create Employee Profile (BRD V4)**: When Admin creates a user with role `Employee`, the system automatically creates an employee profile (`status = BENCH`, department/designation = Unassigned). No separate "Add Employee" step required.
+- **Auto-Create Employee Profile ()**: When Admin creates a user with role `Employee`, the system automatically creates an employee profile (`status = BENCH`, department/designation = Unassigned). No separate "Add Employee" step required.
 - **Assign Manager**: Admin links an employee to a reporting manager by setting `employee.manager_id` to the manager's `user.id`. Validates employee role = Employee and manager role = Manager.
 - **Deactivate Employee**:
   > Triggering deactivation ends all active allocations as of today (`to_date` set to today), sets `employee.is_active` to `false`, and deactivates the linked User account (blocking login access). History is preserved.
@@ -375,7 +371,7 @@ flowchart LR
 
 | Source Use Case | Target Use Case | Relationship | Rationale |
 |---|---|---|---|
-| **Create User Account** | **Auto-Create Employee Profile** | `<<include>>` | When role = Employee, profile is created automatically (BRD V4). |
+| **Create User Account** | **Auto-Create Employee Profile** | `<<include>>` | When role = Employee, profile is created automatically. |
 | **Deactivate Employee** | **End Allocation** | `<<include>>` | Deactivating an employee ends all active allocations today. |
 | **Deactivate Employee** | **Deactivate User** | `<<include>>` | Deactivating an employee blocks their login. |
 | **Create User Account** | **Change Password** | `<<include>>` | Forces a password change on first login. |
@@ -387,8 +383,8 @@ flowchart LR
 
 ### 4.2 System Bounds & Integrity Constraints
 - **Separation of Roles**: Each user is mapped to exactly one role (`Admin`, `Manager`, or `Employee`). Menus, screen routing, and REST controller endpoints are partitioned and validated via JWT role-based claims.
-- **Manager Team Scoping (BRD V4)**: Managers can only view, allocate, and review timesheets for employees where `employee.manager_id` equals the manager's `user.id`.
+- **Manager Team Scoping**: Managers can only view, allocate, and review timesheets for employees where `employee.manager_id` equals the manager's `user.id`.
 - **Resource Protection**: Only the manager assigned to a project can allocate resources to it, end allocations on it, or view timesheets for it. Employees can only view their own allocations and submit/view their own timesheets.
 - **Capacity Safe-Guards**: A manager cannot over-allocate a resource past 100% total utilization in any overlapping timeframe.
 - **Data Retention**: Deactivating users or ending allocations does not delete historical records.
-- **No Self-Registration (BRD V4)**: All accounts created by Admin only.
+- **No Self-Registration**: All accounts created by Admin only.

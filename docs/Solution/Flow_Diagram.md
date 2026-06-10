@@ -60,8 +60,6 @@ flowchart TD
     Q -->|EMPLOYEE| T[EmployeeMenuScreen]
 ```
 
-> **BRD V4:** Sign Up removed from client. `POST /api/auth/signup` returns **403 Forbidden** with message *"Self-registration is disabled. Contact your Admin to create an account."* Accounts are created only by Admin via Manage Users.
-
 ---
 
 ## 2. Role-Based Navigation Flow
@@ -165,8 +163,6 @@ flowchart TD
     A5 --> A5d[Update Max Weekly Hours]
 ```
 
-> **BRD V4:** "Add Employee" removed — employee profiles are auto-created when Admin creates a user with role `Employee`. Admin assigns reporting manager separately via **Assign Manager**.
-
 ---
 
 ## 4. Manager — Full Feature Flow
@@ -194,7 +190,7 @@ flowchart TD
     M2a5 -->|0 - search again| M2a2
     M2a5 -->|Select #N| M2a6[Set Utilisation%, From, To]
     M2a6 --> AllocValidation[(Allocation Validation\nFlow — see §6)]
-    AllocValidation --> M2Saved[Allocation saved ✓]
+    AllocValidation --> M2Saved[Allocation saved]
 
     M2b --> M2b1[Select Project + Team Employee ID]
     M2b1 --> M2b2[Set Utilisation%, From, To]
@@ -213,7 +209,7 @@ flowchart TD
     M2c6 -->|Yes| M2c8[Keep status = ALLOCATED]
 
     %% — My Projects —
-    M3[My Projects] --> M3a[List projects with\n🔴 AT_RISK  🟡 ATTENTION  🟢 ON_TRACK\n(computed live via ManagerService)]
+    M3[My Projects] --> M3a["List projects with AT_RISK / ATTENTION / ON_TRACK - computed live via ManagerService"]
     M3a --> M3b[Select project → Project Detail\nGET /api/manager/projects/id/detail]
     M3b --> M3c[Show milestones + story points\n+ allocations + risk flags]
     M3c --> M3d{Get AI Risk Summary?}
@@ -435,7 +431,7 @@ flowchart TD
     D9 --> D10
     D10 --> D11[SET user is_active = false\nBlock login for linked user account]
     D11 --> D12[All timesheet + allocation history preserved]
-    D12 --> D13[Show: Employee deactivated ✓]
+    D12 --> D13[Show: Employee deactivated]
     D13 --> D8
 ```
 
@@ -453,7 +449,7 @@ flowchart TD
     P3 -->|No| Err3[Validation Error:\n'Password must contain at least one number']
     P3 -->|Yes| P4[BCrypt hash password]
     P4 --> P5[Store password_hash in users table]
-    P5 --> End([Password accepted ✓])
+    P5 --> End([Password accepted])
 
     Err1 & Err2 & Err3 --> ErrEnd([Show error to user — re-prompt])
 

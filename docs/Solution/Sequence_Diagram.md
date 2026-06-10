@@ -73,8 +73,6 @@ sequenceDiagram
     end
 ```
 
-> **BRD V4:** StartScreen offers Login and Exit only. `POST /api/auth/signup` returns **403 Forbidden** if called.
-
 ---
 
 ## 2. Admin — Create User with Auto Employee Profile

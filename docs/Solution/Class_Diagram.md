@@ -266,8 +266,6 @@ classDiagram
     Project "1" --> "0..*" TimesheetEntry
 ```
 
-> **BRD V4 additions:** `Employee.ManagerId` links an employee to their reporting manager (`User.Id`). `Project.TotalStoryPoints` is admin-set; `Milestone.StoryPoints` tracks per-deliverable estimates. `CompletedStoryPoints` is computed in DTOs from Done milestones.
-
 ---
 
 ## 2. AutoMapper Layer (`Infrastructure/Mapping/`)
@@ -743,5 +741,3 @@ classDiagram
     StartScreen --> SessionContext
     ScreenRouter --> SessionContext
 ```
-
-> **BRD V4:** No `SignUpScreen`. Self-registration removed from client; `POST /api/auth/signup` returns 403. Employee profiles are auto-created when Admin creates a user with role `Employee` via Manage Users.

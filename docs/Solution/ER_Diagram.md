@@ -199,8 +199,7 @@ PROJECTS:
   health_status = ON_TRACK  otherwise
   (persisted by scheduler; ManagerService also computes live display health)
 
-AUTH (BRD V4):
-  Self-registration disabled — accounts created only by Admin
+  Accounts created only by Admin
 ```
 
 ---
@@ -209,4 +208,3 @@ AUTH (BRD V4):
 
 Entity models in `Infrastructure/Models/` are mapped to DTOs in `Core/DTOs/` via `Infrastructure/Mapping/MappingProfile.cs`. Repositories inject `IMapper` and return DTOs to the Application service layer — the database schema above is unchanged; mapping is an application-layer concern only.
 
-**Migration:** `BrdV4_ManagerAndStoryPoints` added `employees.manager_id`, `projects.total_story_points`, `milestones.story_points`.
