@@ -15,7 +15,6 @@ public class EmployeeDto
     public string ManagerName { get; set; } = string.Empty;
     public bool IsActive { get; set; }
 
-    /// <summary>Bench/allocated applies to individual contributors only — not delivery managers.</summary>
     public bool IsAllocatableResource =>
         UserRole.Equals(RoleNames.Employee, StringComparison.OrdinalIgnoreCase);
 }

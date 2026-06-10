@@ -6,7 +6,6 @@ using ProjectManagementSystem.Core.Interfaces.AI;
 
 namespace ProjectManagementSystem.Infrastructure.AI;
 
-/// <summary>Selects Gemini or Groq adapter based on <see cref="SystemConfigDto.LlmProvider"/>.</summary>
 public sealed class AiProviderFactory(
     IHttpClientFactory httpClientFactory,
     ILoggerFactory loggerFactory) : IAiProviderFactory

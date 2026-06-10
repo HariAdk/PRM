@@ -14,8 +14,6 @@ public record AISkillMatchRequestDto
 public record AISkillMatchResultDto
 {
     public List<AIMatchedEmployeeDto> Matches { get; init; } = new();
-
-    /// <summary>True when results come from rule-based matching (LLM unavailable or unparseable).</summary>
     public bool UsedFallback { get; init; }
 }
 

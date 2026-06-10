@@ -3,10 +3,6 @@ using ProjectManagementSystem.Core.DTOs.AI;
 
 namespace ProjectManagementSystem.Core.Helpers;
 
-/// <summary>
-/// Parses manager free-text requirements and scores employee profiles.
-/// Used to pre-filter candidates and validate LLM skill-match results.
-/// </summary>
 public static class SkillRequirementMatcher
 {
     private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase)

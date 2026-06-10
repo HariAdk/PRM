@@ -10,9 +10,6 @@ using ProjectManagementSystem.Application.AI;
 
 namespace ProjectManagementSystem.Application;
 
-/// <summary>
-/// Gathers system data, calls the LLM adapter when configured, otherwise uses rule-based fallback.
-/// </summary>
 public class AiService(
     IEmployeeRepository employeeRepo,
     IAllocationRepository allocationRepo,

@@ -13,8 +13,6 @@ public class User
     public bool IsActive { get; set; } = true;
     public bool ForcePasswordChange { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    // Navigation
     public Employee? Employee { get; set; }
     public ICollection<Project> ManagedProjects { get; set; } = [];
 }

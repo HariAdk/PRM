@@ -7,7 +7,5 @@ public class Skill
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public SkillCategory Category { get; set; }
-
-    // Navigation
     public ICollection<EmployeeSkill> EmployeeSkills { get; set; } = [];
 }

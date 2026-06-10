@@ -13,8 +13,6 @@ public class Project
     public ProjectStatus Status { get; set; } = ProjectStatus.Planned;
     public ProjectHealth HealthStatus { get; set; } = ProjectHealth.OnTrack;
     public int TotalStoryPoints { get; set; }
-
-    // Navigation
     public User Manager { get; set; } = null!;
     public ICollection<Milestone> Milestones { get; set; } = [];
     public ICollection<Allocation> Allocations { get; set; } = [];

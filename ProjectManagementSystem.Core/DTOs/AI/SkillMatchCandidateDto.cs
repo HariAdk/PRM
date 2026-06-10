@@ -1,6 +1,5 @@
 namespace ProjectManagementSystem.Core.DTOs.AI;
 
-/// <summary>Pre-filtered employee snapshot sent to the LLM adapter.</summary>
 public record SkillMatchCandidateDto
 {
     public int EmployeeId { get; init; }

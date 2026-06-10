@@ -2,7 +2,6 @@ using ProjectManagementSystem.Core.Enums;
 
 namespace ProjectManagementSystem.Core.Constants;
 
-/// <summary>Ordered enum labels for console menus — keeps UI aligned with domain enums.</summary>
 public static class EnumMenuOptions
 {
     public static readonly string[] UserRoles = [RoleNames.Admin, RoleNames.Manager, RoleNames.Employee];

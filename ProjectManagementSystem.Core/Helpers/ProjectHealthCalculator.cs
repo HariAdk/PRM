@@ -7,7 +7,6 @@ using ProjectManagementSystem.Core.Helpers;
 
 namespace ProjectManagementSystem.Core.Helpers;
 
-/// <summary>Computes live project health for manager views (SRP — separate from persistence scheduler).</summary>
 public static class ProjectHealthCalculator
 {
     public static string ComputeDisplayHealth(

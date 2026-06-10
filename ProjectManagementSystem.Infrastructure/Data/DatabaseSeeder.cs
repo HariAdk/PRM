@@ -6,11 +6,6 @@ using ProjectManagementSystem.Infrastructure.Models;
 
 namespace ProjectManagementSystem.Infrastructure.Data;
 
-/// <summary>
-/// Runs once at application startup.
-/// Seeds the first Admin account and the default SystemConfig row
-/// only if they do not already exist — safe to leave in production.
-/// </summary>
 public class DatabaseSeeder(AppDbContext db, ILogger<DatabaseSeeder> logger)
 {
     public async Task SeedAsync()

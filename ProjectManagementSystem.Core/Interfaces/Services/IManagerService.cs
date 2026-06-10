@@ -1,6 +1,5 @@
 using ProjectManagementSystem.Core.DTOs.Manager;
 using ProjectManagementSystem.Core.DTOs.Project;
-using ProjectManagementSystem.Core.DTOs.Timesheet;
 
 namespace ProjectManagementSystem.Core.Interfaces.Services;
 

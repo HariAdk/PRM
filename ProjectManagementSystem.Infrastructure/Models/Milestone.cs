@@ -10,7 +10,5 @@ public class Milestone
     public DateOnly DueDate { get; set; }
     public MilestoneStatus Status { get; set; } = MilestoneStatus.NotStarted;
     public int StoryPoints { get; set; }
-
-    // Navigation
     public Project Project { get; set; } = null!;
 }
