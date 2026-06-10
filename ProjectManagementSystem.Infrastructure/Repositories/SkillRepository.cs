@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Employee;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
@@ -35,7 +36,7 @@ public class SkillRepository(AppDbContext db, IMapper mapper) : ISkillRepository
 
         var already = await db.EmployeeSkills
             .AnyAsync(es => es.EmployeeId == employeeId && es.SkillId == skill.Id);
-        if (already) throw new InvalidOperationException("Employee already has this skill.");
+        if (already) throw new InvalidOperationException(ErrorMessages.EmployeeAlreadyHasSkill);
 
         var es = new EmployeeSkill
         {
@@ -54,7 +55,7 @@ public class SkillRepository(AppDbContext db, IMapper mapper) : ISkillRepository
         var es = await db.EmployeeSkills
             .Include(e => e.Skill)
             .FirstOrDefaultAsync(e => e.EmployeeId == employeeId && e.SkillId == skillId)
-            ?? throw new KeyNotFoundException("Skill not found for this employee.");
+            ?? throw new KeyNotFoundException(ErrorMessages.SkillNotFoundForEmployee());
 
         es.ProficiencyLevel = Enum.Parse<ProficiencyLevel>(dto.ProficiencyLevel, ignoreCase: true);
         await db.SaveChangesAsync();
@@ -65,7 +66,7 @@ public class SkillRepository(AppDbContext db, IMapper mapper) : ISkillRepository
     {
         var es = await db.EmployeeSkills
             .FirstOrDefaultAsync(e => e.EmployeeId == employeeId && e.SkillId == skillId)
-            ?? throw new KeyNotFoundException("Skill not found for this employee.");
+            ?? throw new KeyNotFoundException(ErrorMessages.SkillNotFoundForEmployee());
 
         db.EmployeeSkills.Remove(es);
         await db.SaveChangesAsync();

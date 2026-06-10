@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Infrastructure.Models;
 
@@ -29,10 +30,10 @@ public class DatabaseSeeder(AppDbContext db, ILogger<DatabaseSeeder> logger)
 
         var admin = new User
         {
-            FullName = "System Admin",
-            Email = "admin@prm.local",
-            Username = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@1234"),
+            FullName = BootstrapDefaults.AdminFullName,
+            Email = BootstrapDefaults.AdminEmail,
+            Username = BootstrapDefaults.AdminUsername,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(BootstrapDefaults.AdminTemporaryPassword),
             Role = UserRole.Admin,
             IsActive = true,
             ForcePasswordChange = true,
@@ -43,8 +44,9 @@ public class DatabaseSeeder(AppDbContext db, ILogger<DatabaseSeeder> logger)
         await db.SaveChangesAsync();
 
         logger.LogInformation(
-            "Bootstrap Admin created. Username: admin | Temp password: Admin@1234 " +
-            "— user must change password on first login.");
+            "Bootstrap Admin created. Username: {Username} | Temp password: {Password} — user must change password on first login.",
+            BootstrapDefaults.AdminUsername,
+            BootstrapDefaults.AdminTemporaryPassword);
     }
 
     private async Task SeedSystemConfigAsync()
@@ -58,10 +60,10 @@ public class DatabaseSeeder(AppDbContext db, ILogger<DatabaseSeeder> logger)
 
         var config = new SystemConfig
         {
-            LlmProvider = "Gemini",
+            LlmProvider = LlmProviders.Gemini,
             LlmApiKey = string.Empty,
-            SchedulerIntervalHours = 4,
-            MaxWeeklyHours = 40
+            SchedulerIntervalHours = SystemDefaults.SchedulerIntervalHours,
+            MaxWeeklyHours = SystemDefaults.MaxWeeklyHours
         };
 
         db.SystemConfigs.Add(config);

@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Infrastructure.Data;
@@ -78,7 +79,7 @@ public class AllocationRepository(AppDbContext db, IMapper mapper) : IAllocation
     public async Task<AllocationDto> UpdateEndDateAsync(int id, DateOnly endDate)
     {
         var allocation = await db.Allocations.FindAsync(id)
-                         ?? throw new KeyNotFoundException($"Allocation {id} not found.");
+                         ?? throw new KeyNotFoundException(ErrorMessages.AllocationNotFoundById(id));
 
         allocation.ToDate = endDate;
         if (endDate <= DateOnly.FromDateTime(DateTime.Today))

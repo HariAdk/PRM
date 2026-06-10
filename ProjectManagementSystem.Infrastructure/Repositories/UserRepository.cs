@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.User;
 using ProjectManagementSystem.Core.Validation;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
@@ -43,7 +44,7 @@ public class UserRepository(AppDbContext db, IMapper mapper) : IUserRepository
     public async Task UpdatePasswordAsync(int userId, string passwordHash, bool forcePasswordChange)
     {
         var user = await db.Users.FindAsync(userId)
-                   ?? throw new KeyNotFoundException($"User {userId} not found.");
+                   ?? throw new KeyNotFoundException(ErrorMessages.UserNotFoundById(userId));
         user.PasswordHash = passwordHash;
         user.ForcePasswordChange = forcePasswordChange;
         await db.SaveChangesAsync();
@@ -52,7 +53,7 @@ public class UserRepository(AppDbContext db, IMapper mapper) : IUserRepository
     public async Task SetActiveAsync(int userId, bool isActive)
     {
         var user = await db.Users.FindAsync(userId)
-                   ?? throw new KeyNotFoundException($"User {userId} not found.");
+                   ?? throw new KeyNotFoundException(ErrorMessages.UserNotFoundById(userId));
         user.IsActive = isActive;
         await db.SaveChangesAsync();
     }

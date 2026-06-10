@@ -1,5 +1,6 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens.Manager;
 
@@ -9,7 +10,7 @@ public class ResourceDashboardScreen(ApiClient api)
     public async Task ShowAsync()
     {
         Console.Clear();
-        var monthYear = DateTime.Now.ToString("MMMM yyyy");
+        var monthYear = DateTime.Now.ToString(UiFormats.DisplayMonthYear);
         ConsoleUI.DrawBox($"RESOURCE DASHBOARD — {monthYear}");
 
         var (dashboard, error) = await api.GetManagerDashboardAsync();
@@ -72,7 +73,7 @@ public class ResourceDashboardScreen(ApiClient api)
 
         var (detail, error) = await api.GetManagerEmployeeDetailAsync(id);
         if (error is not null) { ConsoleUI.Error(error); ConsoleUI.PressAnyKey(); return; }
-        if (detail is null) { ConsoleUI.Error("Employee not found."); ConsoleUI.PressAnyKey(); return; }
+        if (detail is null) { ConsoleUI.Error(ErrorMessages.EmployeeNotFound); ConsoleUI.PressAnyKey(); return; }
 
         ConsoleUI.SubHeader(detail.Name);
         ConsoleUI.KeyValue("Department", detail.Department);

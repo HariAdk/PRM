@@ -1,15 +1,13 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Employee;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
 
-/// <summary>Screen 3.1.4 � Manage Employee Skills</summary>
+/// <summary>Screen 3.1.4 — Manage Employee Skills</summary>
 public class ManageSkillsScreen(ApiClient api)
 {
-    private static readonly string[] Categories   = ["Backend", "Frontend", "DevOps", "QA", "Other"];
-    private static readonly string[] Proficiencies = ["Beginner", "Intermediate", "Advanced"];
-
     public async Task ShowAsync()
     {
         Console.Clear();
@@ -60,23 +58,23 @@ public class ManageSkillsScreen(ApiClient api)
 
         Console.WriteLine("Category          : (1) Backend  (2) Frontend  (3) DevOps  (4) QA  (5) Other");
         var catChoice = ConsoleUI.Prompt("Enter choice      ");
-        if (!int.TryParse(catChoice, out var ci) || ci < 1 || ci > Categories.Length)
+        if (!int.TryParse(catChoice, out var ci) || ci < 1 || ci > EnumMenuOptions.SkillCategories.Length)
         { ConsoleUI.Error("Invalid category."); ConsoleUI.PressAnyKey(); return; }
 
         Console.WriteLine("Proficiency Level : (1) Beginner  (2) Intermediate  (3) Advanced");
         var profChoice = ConsoleUI.Prompt("Enter choice      ");
-        if (!int.TryParse(profChoice, out var pi) || pi < 1 || pi > Proficiencies.Length)
+        if (!int.TryParse(profChoice, out var pi) || pi < 1 || pi > EnumMenuOptions.ProficiencyLevels.Length)
         { ConsoleUI.Error("Invalid proficiency."); ConsoleUI.PressAnyKey(); return; }
 
         var (_, error) = await api.AddSkillAsync(empId, new AddSkillDto
         {
             SkillName       = skillName,
-            Category        = Categories[ci - 1],
-            ProficiencyLevel = Proficiencies[pi - 1]
+            Category        = EnumMenuOptions.SkillCategories[ci - 1],
+            ProficiencyLevel = EnumMenuOptions.ProficiencyLevels[pi - 1]
         });
 
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Skill added.");
+        else ConsoleUI.Success(SuccessMessages.SkillAdded);
         ConsoleUI.PressAnyKey();
     }
 
@@ -84,23 +82,22 @@ public class ManageSkillsScreen(ApiClient api)
     {
         if (list.Count == 0) { ConsoleUI.Warning("No skills to update."); ConsoleUI.PressAnyKey(); return; }
 
-        var idxStr = ConsoleUI.Prompt("Enter skill number to update");
+        var idxStr = ConsoleUI.Prompt("Enter skill number");
         if (!int.TryParse(idxStr, out var idx) || idx < 1 || idx > list.Count)
         { ConsoleUI.Error("Invalid selection."); ConsoleUI.PressAnyKey(); return; }
 
-        var skill = list[idx - 1];
-        Console.WriteLine("\nProficiency Level : (1) Beginner  (2) Intermediate  (3) Advanced");
-        var profChoice = ConsoleUI.Prompt("Enter choice");
-        if (!int.TryParse(profChoice, out var pi) || pi < 1 || pi > Proficiencies.Length)
+        Console.WriteLine("Proficiency Level : (1) Beginner  (2) Intermediate  (3) Advanced");
+        var profChoice = ConsoleUI.Prompt("Enter choice      ");
+        if (!int.TryParse(profChoice, out var pi) || pi < 1 || pi > EnumMenuOptions.ProficiencyLevels.Length)
         { ConsoleUI.Error("Invalid proficiency."); ConsoleUI.PressAnyKey(); return; }
 
-        var (_, error) = await api.UpdateSkillAsync(empId, skill.SkillId, new UpdateSkillDto
+        var (_, error) = await api.UpdateSkillAsync(empId, list[idx - 1].Id, new UpdateSkillDto
         {
-            ProficiencyLevel = Proficiencies[pi - 1]
+            ProficiencyLevel = EnumMenuOptions.ProficiencyLevels[pi - 1]
         });
 
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Proficiency updated.");
+        else ConsoleUI.Success(SuccessMessages.ProficiencyUpdated);
         ConsoleUI.PressAnyKey();
     }
 
@@ -108,18 +105,14 @@ public class ManageSkillsScreen(ApiClient api)
     {
         if (list.Count == 0) { ConsoleUI.Warning("No skills to remove."); ConsoleUI.PressAnyKey(); return; }
 
-        var idxStr = ConsoleUI.Prompt("Enter skill number to remove");
+        var idxStr = ConsoleUI.Prompt("Enter skill number");
         if (!int.TryParse(idxStr, out var idx) || idx < 1 || idx > list.Count)
         { ConsoleUI.Error("Invalid selection."); ConsoleUI.PressAnyKey(); return; }
 
-        var skill = list[idx - 1];
-        Console.WriteLine($"\nRemove '{skill.SkillName}' from this employee?");
-        ConsoleUI.ActionBar("[Y] Yes", "[B] Cancel");
-        if (ConsoleUI.PromptOption().ToUpper() != "Y") return;
+        var (_, error) = await api.RemoveSkillAsync(empId, list[idx - 1].Id);
 
-        var (_, error) = await api.RemoveSkillAsync(empId, skill.SkillId);
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Skill removed.");
+        else ConsoleUI.Success(SuccessMessages.SkillRemoved);
         ConsoleUI.PressAnyKey();
     }
 }

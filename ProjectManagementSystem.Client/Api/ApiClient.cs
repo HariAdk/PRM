@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Auth;
 using ProjectManagementSystem.Core.DTOs.User;
 using ProjectManagementSystem.Core.DTOs.Employee;
@@ -45,163 +46,154 @@ public class ApiClient
     public void ClearToken() =>
         _http.DefaultRequestHeaders.Authorization = null;
 
-    // ?? Auth ?????????????????????????????????????????????????????????????????
     public Task<(LoginResponseDto? Data, string? Error)> LoginAsync(LoginRequestDto dto) =>
-        PostAsync<LoginRequestDto, LoginResponseDto>("api/auth/login", dto);
+        PostAsync<LoginRequestDto, LoginResponseDto>(ApiRoutes.AuthLogin, dto);
 
     public Task<(object? Data, string? Error)> ChangePasswordAsync(int userId, ChangePasswordDto dto) =>
-        PutAsync<ChangePasswordDto, object>($"api/auth/change-password/{userId}", dto);
+        PutAsync<ChangePasswordDto, object>(ApiRoutes.AuthChangePassword(userId), dto);
 
-    // ?? Users ?????????????????????????????????????????????????????????????????
     public Task<(IEnumerable<UserDto>? Data, string? Error)> GetUsersAsync() =>
-        GetAsync<IEnumerable<UserDto>>("api/users");
+        GetAsync<IEnumerable<UserDto>>(ApiRoutes.Users);
 
     public Task<(UserDto? Data, string? Error)> CreateUserAsync(CreateUserDto dto) =>
-        PostAsync<CreateUserDto, UserDto>("api/users", dto);
+        PostAsync<CreateUserDto, UserDto>(ApiRoutes.Users, dto);
 
     public Task<(object? Data, string? Error)> ResetPasswordAsync(int userId, ResetPasswordDto dto) =>
-        PutAsync<ResetPasswordDto, object>($"api/users/{userId}/reset-password", dto);
+        PutAsync<ResetPasswordDto, object>(ApiRoutes.UserResetPassword(userId), dto);
 
     public Task<(object? Data, string? Error)> DeactivateUserAsync(int userId) =>
-        PutAsync<object, object>($"api/users/{userId}/deactivate", null!);
+        PutAsync<object, object>(ApiRoutes.UserDeactivate(userId), null!);
 
     public Task<(object? Data, string? Error)> ReactivateUserAsync(int userId) =>
-        PutAsync<object, object>($"api/users/{userId}/reactivate", null!);
+        PutAsync<object, object>(ApiRoutes.UserReactivate(userId), null!);
 
-    // ?? Employees ?????????????????????????????????????????????????????????????
     public Task<(IEnumerable<EmployeeDto>? Data, string? Error)> GetEmployeesAsync() =>
-        GetAsync<IEnumerable<EmployeeDto>>("api/employees");
+        GetAsync<IEnumerable<EmployeeDto>>(ApiRoutes.Employees);
 
     public Task<(EmployeeDto? Data, string? Error)> GetEmployeeAsync(int id) =>
-        GetAsync<EmployeeDto>($"api/employees/{id}");
+        GetAsync<EmployeeDto>(ApiRoutes.EmployeeById(id));
 
     public Task<(EmployeeDto? Data, string? Error)> CreateEmployeeAsync(CreateEmployeeDto dto) =>
-        PostAsync<CreateEmployeeDto, EmployeeDto>("api/employees", dto);
+        PostAsync<CreateEmployeeDto, EmployeeDto>(ApiRoutes.Employees, dto);
 
     public Task<(EmployeeDto? Data, string? Error)> UpdateEmployeeAsync(int id, UpdateEmployeeDto dto) =>
-        PutAsync<UpdateEmployeeDto, EmployeeDto>($"api/employees/{id}", dto);
+        PutAsync<UpdateEmployeeDto, EmployeeDto>(ApiRoutes.EmployeeById(id), dto);
 
     public Task<(object? Data, string? Error)> DeactivateEmployeeAsync(int id) =>
-        PutAsync<object, object>($"api/employees/{id}/deactivate", null!);
+        PutAsync<object, object>(ApiRoutes.EmployeeDeactivate(id), null!);
 
     public Task<(EmployeeDto? Data, string? Error)> AssignManagerAsync(AssignManagerDto dto) =>
-        PutAsync<AssignManagerDto, EmployeeDto>("api/employees/assign-manager", dto);
+        PutAsync<AssignManagerDto, EmployeeDto>(ApiRoutes.EmployeesAssignManager, dto);
 
     public Task<(IEnumerable<EmployeeSkillDto>? Data, string? Error)> GetSkillsAsync(int id) =>
-        GetAsync<IEnumerable<EmployeeSkillDto>>($"api/employees/{id}/skills");
+        GetAsync<IEnumerable<EmployeeSkillDto>>(ApiRoutes.EmployeeSkills(id));
 
     public Task<(EmployeeSkillDto? Data, string? Error)> AddSkillAsync(int id, AddSkillDto dto) =>
-        PostAsync<AddSkillDto, EmployeeSkillDto>($"api/employees/{id}/skills", dto);
+        PostAsync<AddSkillDto, EmployeeSkillDto>(ApiRoutes.EmployeeSkills(id), dto);
 
     public Task<(EmployeeSkillDto? Data, string? Error)> UpdateSkillAsync(int id, int skillId, UpdateSkillDto dto) =>
-        PutAsync<UpdateSkillDto, EmployeeSkillDto>($"api/employees/{id}/skills/{skillId}", dto);
+        PutAsync<UpdateSkillDto, EmployeeSkillDto>(ApiRoutes.EmployeeSkill(id, skillId), dto);
 
     public Task<(object? Data, string? Error)> RemoveSkillAsync(int id, int skillId) =>
-        DeleteAsync($"api/employees/{id}/skills/{skillId}");
+        DeleteAsync(ApiRoutes.EmployeeSkill(id, skillId));
 
-    // ?? Projects ??????????????????????????????????????????????????????????????
     public Task<(IEnumerable<ProjectDto>? Data, string? Error)> GetProjectsAsync() =>
-        GetAsync<IEnumerable<ProjectDto>>("api/projects");
+        GetAsync<IEnumerable<ProjectDto>>(ApiRoutes.Projects);
 
     public Task<(ProjectDto? Data, string? Error)> GetProjectAsync(int id) =>
-        GetAsync<ProjectDto>($"api/projects/{id}");
+        GetAsync<ProjectDto>(ApiRoutes.ProjectById(id));
 
     public Task<(ProjectDto? Data, string? Error)> CreateProjectAsync(CreateProjectDto dto) =>
-        PostAsync<CreateProjectDto, ProjectDto>("api/projects", dto);
+        PostAsync<CreateProjectDto, ProjectDto>(ApiRoutes.Projects, dto);
 
     public Task<(ProjectDto? Data, string? Error)> UpdateProjectAsync(int id, UpdateProjectDto dto) =>
-        PutAsync<UpdateProjectDto, ProjectDto>($"api/projects/{id}", dto);
+        PutAsync<UpdateProjectDto, ProjectDto>(ApiRoutes.ProjectById(id), dto);
 
     public Task<(IEnumerable<MilestoneDto>? Data, string? Error)> GetMilestonesAsync(int projectId) =>
-        GetAsync<IEnumerable<MilestoneDto>>($"api/projects/{projectId}/milestones");
+        GetAsync<IEnumerable<MilestoneDto>>(ApiRoutes.ProjectMilestones(projectId));
 
     public Task<(MilestoneDto? Data, string? Error)> AddMilestoneAsync(int projectId, CreateMilestoneDto dto) =>
-        PostAsync<CreateMilestoneDto, MilestoneDto>($"api/projects/{projectId}/milestones", dto);
+        PostAsync<CreateMilestoneDto, MilestoneDto>(ApiRoutes.ProjectMilestones(projectId), dto);
 
     public Task<(MilestoneDto? Data, string? Error)> UpdateMilestoneStatusAsync(int projectId, int milestoneId, UpdateMilestoneStatusDto dto) =>
-        PutAsync<UpdateMilestoneStatusDto, MilestoneDto>($"api/projects/{projectId}/milestones/{milestoneId}", dto);
+        PutAsync<UpdateMilestoneStatusDto, MilestoneDto>(ApiRoutes.ProjectMilestone(projectId, milestoneId), dto);
 
-    // ?? Allocations ???????????????????????????????????????????????????????????
     public Task<(IEnumerable<AllocationDto>? Data, string? Error)> GetAllocationsAsync() =>
-        GetAsync<IEnumerable<AllocationDto>>("api/allocations");
+        GetAsync<IEnumerable<AllocationDto>>(ApiRoutes.Allocations);
 
-    // ?? Config ????????????????????????????????????????????????????????????????
     public Task<(SystemConfigDto? Data, string? Error)> GetConfigAsync() =>
-        GetAsync<SystemConfigDto>("api/config");
+        GetAsync<SystemConfigDto>(ApiRoutes.Config);
 
     public Task<(object? Data, string? Error)> UpdateConfigAsync(SystemConfigDto dto) =>
-        PutAsync<SystemConfigDto, object>("api/config", dto);
+        PutAsync<SystemConfigDto, object>(ApiRoutes.Config, dto);
 
-    // ?? Manager ????????????????????????????????????????????????????????????????
     public Task<(ResourceDashboardDto? Data, string? Error)> GetManagerDashboardAsync() =>
-        GetAsync<ResourceDashboardDto>("api/manager/dashboard");
+        GetAsync<ResourceDashboardDto>(ApiRoutes.ManagerDashboard);
 
     public Task<(EmployeeDetailDto? Data, string? Error)> GetManagerEmployeeDetailAsync(int id) =>
-        GetAsync<EmployeeDetailDto>($"api/manager/employees/{id}");
+        GetAsync<EmployeeDetailDto>(ApiRoutes.ManagerEmployee(id));
 
     public Task<(IEnumerable<ProjectDto>? Data, string? Error)> GetManagerProjectsAsync() =>
-        GetAsync<IEnumerable<ProjectDto>>("api/manager/projects");
+        GetAsync<IEnumerable<ProjectDto>>(ApiRoutes.ManagerProjects);
 
     public Task<(ProjectDto? Data, string? Error)> GetManagerProjectAsync(int id) =>
-        GetAsync<ProjectDto>($"api/manager/projects/{id}");
+        GetAsync<ProjectDto>(ApiRoutes.ManagerProject(id));
 
     public Task<(ProjectDetailDto? Data, string? Error)> GetManagerProjectDetailAsync(int id) =>
-        GetAsync<ProjectDetailDto>($"api/manager/projects/{id}/detail");
+        GetAsync<ProjectDetailDto>(ApiRoutes.ManagerProjectDetail(id));
 
     public Task<(IEnumerable<MilestoneDto>? Data, string? Error)> GetManagerProjectMilestonesAsync(int projectId) =>
-        GetAsync<IEnumerable<MilestoneDto>>($"api/manager/projects/{projectId}/milestones");
+        GetAsync<IEnumerable<MilestoneDto>>(ApiRoutes.ManagerProjectMilestones(projectId));
 
     public Task<(IEnumerable<AllocationDto>? Data, string? Error)> GetManagerProjectAllocationsAsync(int projectId) =>
-        GetAsync<IEnumerable<AllocationDto>>($"api/manager/projects/{projectId}/allocations");
+        GetAsync<IEnumerable<AllocationDto>>(ApiRoutes.ManagerProjectAllocations(projectId));
 
     public Task<(AllocationDto? Data, string? Error)> CreateManagerAllocationAsync(CreateAllocationDto dto) =>
-        PostAsync<CreateAllocationDto, AllocationDto>("api/manager/allocations", dto);
+        PostAsync<CreateAllocationDto, AllocationDto>(ApiRoutes.ManagerAllocations, dto);
 
     public Task<(object? Data, string? Error)> EndManagerAllocationAsync(int id, EndAllocationDto dto) =>
-        PutAsync<EndAllocationDto, object>($"api/manager/allocations/{id}/end", dto);
+        PutAsync<EndAllocationDto, object>(ApiRoutes.ManagerAllocationEnd(id), dto);
 
     public Task<(ManagerTeamTimesheetDto? Data, string? Error)> GetManagerTeamTimesheetsAsync(string? weekStart = null)
     {
         var url = string.IsNullOrEmpty(weekStart)
-            ? "api/manager/timesheets"
-            : $"api/manager/timesheets?weekStart={weekStart}";
+            ? ApiRoutes.ManagerTimesheets
+            : ApiRoutes.ManagerTimesheetsWithWeek(weekStart);
         return GetAsync<ManagerTeamTimesheetDto>(url);
     }
 
     public Task<(TimesheetDto? Data, string? Error)> GetManagerTimesheetDetailAsync(int id) =>
-        GetAsync<TimesheetDto>($"api/manager/timesheets/{id}");
+        GetAsync<TimesheetDto>(ApiRoutes.ManagerTimesheet(id));
 
     public Task<(AISkillMatchResultDto? Data, string? Error)> ManagerSkillMatchAsync(AISkillMatchRequestDto dto) =>
-        PostAsync<AISkillMatchRequestDto, AISkillMatchResultDto>("api/manager/ai/skill-match", dto);
+        PostAsync<AISkillMatchRequestDto, AISkillMatchResultDto>(ApiRoutes.ManagerAiSkillMatch, dto);
 
     public Task<(AIRiskSummaryResultDto? Data, string? Error)> ManagerRiskSummaryAsync(AIRiskSummaryRequestDto dto) =>
-        PostAsync<AIRiskSummaryRequestDto, AIRiskSummaryResultDto>("api/manager/ai/risk-summary", dto);
+        PostAsync<AIRiskSummaryRequestDto, AIRiskSummaryResultDto>(ApiRoutes.ManagerAiRiskSummary, dto);
 
-    // ?? Employee ???????????????????????????????????????????????????????????????
     public Task<(EmployeeReminderDto? Data, string? Error)> GetEmployeeReminderAsync() =>
-        GetAsync<EmployeeReminderDto>("api/employee/reminder");
+        GetAsync<EmployeeReminderDto>(ApiRoutes.EmployeeReminder);
 
     public Task<(EmployeeProfileDto? Data, string? Error)> GetEmployeeAllocationsAsync() =>
-        GetAsync<EmployeeProfileDto>("api/employee/allocations");
+        GetAsync<EmployeeProfileDto>(ApiRoutes.EmployeeAllocations);
 
     public Task<(EmployeeSubmitContextDto? Data, string? Error)> GetEmployeeSubmitContextAsync(string? weekStart = null)
     {
         var url = string.IsNullOrEmpty(weekStart)
-            ? "api/employee/timesheets/context"
-            : $"api/employee/timesheets/context?weekStart={weekStart}";
+            ? ApiRoutes.EmployeeTimesheetsContext
+            : ApiRoutes.EmployeeTimesheetsContextWithWeek(weekStart);
         return GetAsync<EmployeeSubmitContextDto>(url);
     }
 
     public Task<(TimesheetDto? Data, string? Error)> SubmitEmployeeTimesheetAsync(SubmitEmployeeTimesheetDto dto) =>
-        PostAsync<SubmitEmployeeTimesheetDto, TimesheetDto>("api/employee/timesheets", dto);
+        PostAsync<SubmitEmployeeTimesheetDto, TimesheetDto>(ApiRoutes.EmployeeTimesheets, dto);
 
     public Task<(IEnumerable<TimesheetDto>? Data, string? Error)> GetEmployeeTimesheetsAsync() =>
-        GetAsync<IEnumerable<TimesheetDto>>("api/employee/timesheets");
+        GetAsync<IEnumerable<TimesheetDto>>(ApiRoutes.EmployeeTimesheets);
 
     public Task<(TimesheetDto? Data, string? Error)> GetEmployeeTimesheetAsync(int id) =>
-        GetAsync<TimesheetDto>($"api/employee/timesheets/{id}");
+        GetAsync<TimesheetDto>(ApiRoutes.EmployeeTimesheet(id));
 
-    // ?? HTTP primitives ???????????????????????????????????????????????????????
     private async Task<(T? Data, string? Error)> GetAsync<T>(string url)
     {
         try

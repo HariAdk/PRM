@@ -12,8 +12,6 @@ public sealed class GeminiAiProvider(
     string apiKey,
     ILogger<GeminiAiProvider> logger) : IAiProvider
 {
-    private const string Model = "models/gemini-2.5-flash";
-
     public string ProviderName => LlmProviders.Gemini;
 
     public async Task<string> CompleteAsync(
@@ -21,7 +19,7 @@ public sealed class GeminiAiProvider(
         string userPrompt,
         CancellationToken cancellationToken = default)
     {
-        var url = $"v1/{Model}:generateContent?key={Uri.EscapeDataString(apiKey)}";
+        var url = $"v1/{ExternalApiDefaults.GeminiModel}:generateContent?key={Uri.EscapeDataString(apiKey)}";
         var combined = $"{systemPrompt}\n\n{userPrompt}";
 
         var payload = new
@@ -30,7 +28,11 @@ public sealed class GeminiAiProvider(
             {
                 new { parts = new[] { new { text = combined } } }
             },
-            generationConfig = new { temperature = 0.3, maxOutputTokens = 2048 }
+            generationConfig = new
+            {
+                temperature = ExternalApiDefaults.LlmTemperature,
+                maxOutputTokens = ExternalApiDefaults.LlmMaxOutputTokens
+            }
         };
 
         using var response = await httpClient.PostAsJsonAsync(url, payload, cancellationToken);
@@ -39,7 +41,7 @@ public sealed class GeminiAiProvider(
         if (!response.IsSuccessStatusCode)
         {
             logger.LogWarning("Gemini API error {Status}: {Body}", response.StatusCode, body);
-            throw new InvalidOperationException($"Gemini API returned {(int)response.StatusCode}.");
+            throw new InvalidOperationException(ErrorMessages.GeminiApiError((int)response.StatusCode));
         }
 
         using var doc = JsonDocument.Parse(body);
@@ -51,7 +53,7 @@ public sealed class GeminiAiProvider(
             .GetString();
 
         if (string.IsNullOrWhiteSpace(text))
-            throw new InvalidOperationException("Gemini API returned an empty response.");
+            throw new InvalidOperationException(ErrorMessages.GeminiEmptyResponse);
 
         return text.Trim();
     }

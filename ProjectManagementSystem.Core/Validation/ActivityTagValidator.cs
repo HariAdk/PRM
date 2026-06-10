@@ -11,21 +11,18 @@ public static class ActivityTagValidator
     public static void Validate(string activityTags)
     {
         if (string.IsNullOrWhiteSpace(activityTags))
-            throw new InvalidOperationException("At least one activity tag is required for entries with hours.");
+            throw new InvalidOperationException(ErrorMessages.ActivityTagRequired);
 
         var tags = activityTags
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         if (tags.Length == 0)
-            throw new InvalidOperationException("At least one activity tag is required for entries with hours.");
+            throw new InvalidOperationException(ErrorMessages.ActivityTagRequired);
 
         foreach (var tag in tags)
         {
             if (!AllowedTags.Contains(tag))
-            {
-                throw new InvalidOperationException(
-                    $"Invalid activity tag '{tag}'. Choose from the predefined list.");
-            }
+                throw new InvalidOperationException(ErrorMessages.InvalidActivityTag(tag));
         }
     }
 

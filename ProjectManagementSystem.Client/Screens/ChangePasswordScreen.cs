@@ -1,6 +1,7 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
 using ProjectManagementSystem.Client.Session;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Auth;
 
 namespace ProjectManagementSystem.Client.Screens;
@@ -47,7 +48,7 @@ public class ChangePasswordScreen(ApiClient api, SessionContext session)
             }
 
             session.ClearForceChange();
-            ConsoleUI.Success("Password updated. Welcome!");
+            ConsoleUI.Success(SuccessMessages.PasswordUpdatedWelcome);
             ConsoleUI.PressAnyKey();
             return true;
         }

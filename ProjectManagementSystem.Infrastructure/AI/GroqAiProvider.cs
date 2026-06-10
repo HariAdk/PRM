@@ -13,8 +13,6 @@ public sealed class GroqAiProvider(
     string apiKey,
     ILogger<GroqAiProvider> logger) : IAiProvider
 {
-    private const string Model = "llama-3.1-8b-instant";
-
     public string ProviderName => LlmProviders.Groq;
 
     public async Task<string> CompleteAsync(
@@ -22,13 +20,13 @@ public sealed class GroqAiProvider(
         string userPrompt,
         CancellationToken cancellationToken = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, "openai/v1/chat/completions");
+        using var request = new HttpRequestMessage(HttpMethod.Post, ExternalApiDefaults.GroqChatCompletionsPath);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         request.Content = JsonContent.Create(new
         {
-            model = Model,
-            temperature = 0.3,
-            max_tokens = 2048,
+            model = ExternalApiDefaults.GroqModel,
+            temperature = ExternalApiDefaults.LlmTemperature,
+            max_tokens = ExternalApiDefaults.LlmMaxOutputTokens,
             messages = new object[]
             {
                 new { role = "system", content = systemPrompt },
@@ -42,7 +40,7 @@ public sealed class GroqAiProvider(
         if (!response.IsSuccessStatusCode)
         {
             logger.LogWarning("Groq API error {Status}: {Body}", response.StatusCode, body);
-            throw new InvalidOperationException($"Groq API returned {(int)response.StatusCode}.");
+            throw new InvalidOperationException(ErrorMessages.GroqApiError((int)response.StatusCode));
         }
 
         using var doc = JsonDocument.Parse(body);
@@ -53,7 +51,7 @@ public sealed class GroqAiProvider(
             .GetString();
 
         if (string.IsNullOrWhiteSpace(text))
-            throw new InvalidOperationException("Groq API returned an empty response.");
+            throw new InvalidOperationException(ErrorMessages.GroqEmptyResponse);
 
         return text.Trim();
     }

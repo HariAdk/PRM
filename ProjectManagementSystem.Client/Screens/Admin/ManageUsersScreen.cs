@@ -1,5 +1,6 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.User;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
@@ -45,7 +46,7 @@ public class ManageUsersScreen(ApiClient api)
 
         Console.WriteLine("Role              : (1) Admin  (2) Manager  (3) Employee");
         var roleChoice = ConsoleUI.Prompt("Enter choice");
-        var roleMap = new[] { "Admin", "Manager", "Employee" };
+        var roleMap = EnumMenuOptions.UserRoles;
         if (!int.TryParse(roleChoice, out var ri) || ri < 1 || ri > 3)
         { ConsoleUI.Error("Invalid role."); ConsoleUI.PressAnyKey(); return; }
 
@@ -62,7 +63,7 @@ public class ManageUsersScreen(ApiClient api)
         });
 
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Account created. User must change password on first login.");
+        else ConsoleUI.Success(SuccessMessages.AccountCreated);
         ConsoleUI.PressAnyKey();
     }
 
@@ -141,7 +142,7 @@ public class ManageUsersScreen(ApiClient api)
 
         var (_, error) = await api.ResetPasswordAsync(id, new ResetPasswordDto { NewTemporaryPassword = newPwd });
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Password reset. User will be prompted to change it on next login.");
+        else ConsoleUI.Success(SuccessMessages.PasswordReset);
         ConsoleUI.PressAnyKey();
     }
 
@@ -167,7 +168,7 @@ public class ManageUsersScreen(ApiClient api)
 
         var (_, error) = await api.DeactivateUserAsync(id);
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("User deactivated.");
+        else ConsoleUI.Success(SuccessMessages.UserDeactivated);
         ConsoleUI.PressAnyKey();
     }
 }

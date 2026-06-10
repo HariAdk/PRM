@@ -1,5 +1,6 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Project;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
@@ -7,8 +8,6 @@ namespace ProjectManagementSystem.Client.Screens.Admin;
 /// <summary>Screen 3.2 — Manage Projects</summary>
 public class ManageProjectsScreen(ApiClient api)
 {
-    private static readonly string[] Statuses = ["Planned", "Active", "OnHold", "Completed"];
-
     public async Task ShowAsync()
     {
         while (true)
@@ -52,8 +51,8 @@ public class ManageProjectsScreen(ApiClient api)
         ConsoleUI.ActionBar("[S] Save", "[B] Back");
         if (ConsoleUI.PromptOption().ToUpper() == "B") return;
 
-        if (!DateOnly.TryParseExact(startStr, "dd-MM-yyyy", out var start) ||
-            !DateOnly.TryParseExact(endStr,   "dd-MM-yyyy", out var end))
+        if (!DateOnly.TryParseExact(startStr, UiFormats.DisplayDate, out var start) ||
+            !DateOnly.TryParseExact(endStr,   UiFormats.DisplayDate, out var end))
         { ConsoleUI.Error("Invalid date format. Use DD-MM-YYYY."); ConsoleUI.PressAnyKey(); return; }
 
         if (!int.TryParse(managerIdStr, out var managerId) ||
@@ -67,7 +66,7 @@ public class ManageProjectsScreen(ApiClient api)
             Description      = desc,
             StartDate        = start,
             EndDate          = end,
-            Status           = Statuses[sc - 1],
+            Status           = EnumMenuOptions.ProjectStatuses[sc - 1],
             ManagerId        = managerId,
             TotalStoryPoints = totalSp
         });
@@ -133,11 +132,11 @@ public class ManageProjectsScreen(ApiClient api)
         if (ConsoleUI.PromptOption().ToUpper() == "B") return;
 
         var start = string.IsNullOrEmpty(startStr) ? proj.StartDate
-                    : DateOnly.TryParseExact(startStr, "dd-MM-yyyy", out var s) ? s : proj.StartDate;
+                    : DateOnly.TryParseExact(startStr, UiFormats.DisplayDate, out var s) ? s : proj.StartDate;
         var end   = string.IsNullOrEmpty(endStr) ? proj.EndDate
-                    : DateOnly.TryParseExact(endStr,   "dd-MM-yyyy", out var e) ? e : proj.EndDate;
-        var status    = (!string.IsNullOrEmpty(sc) && int.TryParse(sc, out var si) && si >= 1 && si <= Statuses.Length)
-                        ? Statuses[si - 1] : proj.Status;
+                    : DateOnly.TryParseExact(endStr,   UiFormats.DisplayDate, out var e) ? e : proj.EndDate;
+        var status    = (!string.IsNullOrEmpty(sc) && int.TryParse(sc, out var si) && si >= 1 && si <= EnumMenuOptions.ProjectStatuses.Length)
+                        ? EnumMenuOptions.ProjectStatuses[si - 1] : proj.Status;
         var managerId = (!string.IsNullOrEmpty(mgr) && int.TryParse(mgr, out var mi)) ? mi : proj.ManagerId;
         var totalSp   = (!string.IsNullOrEmpty(sp) && int.TryParse(sp, out var tsp) && tsp >= 0)
                         ? tsp : proj.TotalStoryPoints;
@@ -154,7 +153,7 @@ public class ManageProjectsScreen(ApiClient api)
         });
 
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Project updated.");
+        else ConsoleUI.Success(SuccessMessages.ProjectUpdated);
         ConsoleUI.PressAnyKey();
     }
 
@@ -224,7 +223,7 @@ public class ManageProjectsScreen(ApiClient api)
         var dueStr  = ConsoleUI.Prompt("Due Date (DD-MM-YYYY)");
         var spStr   = ConsoleUI.Prompt("Story Points");
 
-        if (!DateOnly.TryParseExact(dueStr, "dd-MM-yyyy", out var due))
+        if (!DateOnly.TryParseExact(dueStr, UiFormats.DisplayDate, out var due))
         { ConsoleUI.Error("Invalid date format."); ConsoleUI.PressAnyKey(); return; }
 
         if (!int.TryParse(spStr, out var storyPoints) || storyPoints < 0)
@@ -238,7 +237,7 @@ public class ManageProjectsScreen(ApiClient api)
         });
 
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Milestone added.");
+        else ConsoleUI.Success(SuccessMessages.MilestoneAdded);
         ConsoleUI.PressAnyKey();
     }
 
@@ -255,7 +254,7 @@ public class ManageProjectsScreen(ApiClient api)
         Console.WriteLine("  (2) InProgress");
         Console.WriteLine("  (3) Done");
         var sc = ConsoleUI.Prompt("Enter choice");
-        var statusMap = new[] { "NotStarted", "InProgress", "Done" };
+        var statusMap = EnumMenuOptions.MilestoneStatuses;
         if (!int.TryParse(sc, out var si) || si < 1 || si > 3)
         { ConsoleUI.Error("Invalid status."); ConsoleUI.PressAnyKey(); return; }
 
@@ -263,7 +262,7 @@ public class ManageProjectsScreen(ApiClient api)
             new UpdateMilestoneStatusDto { Status = statusMap[si - 1] });
 
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Milestone status updated.");
+        else ConsoleUI.Success(SuccessMessages.MilestoneStatusUpdated);
         ConsoleUI.PressAnyKey();
     }
 }

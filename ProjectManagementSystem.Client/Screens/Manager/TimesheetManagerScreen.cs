@@ -1,5 +1,6 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens.Manager;
 
@@ -16,9 +17,9 @@ public class TimesheetManagerScreen(ApiClient api)
         string? weekParam = null;
         if (!string.IsNullOrWhiteSpace(weekStr))
         {
-            if (!DateOnly.TryParseExact(weekStr, "dd-MM-yyyy", out var week))
+            if (!DateOnly.TryParseExact(weekStr, UiFormats.DisplayDate, out var week))
             { ConsoleUI.Error("Invalid date format."); ConsoleUI.PressAnyKey(); return; }
-            weekParam = week.ToDateTime(TimeOnly.MinValue).ToString("yyyy-MM-dd");
+            weekParam = week.ToDateTime(TimeOnly.MinValue).ToString(UiFormats.ApiWeekStart);
         }
 
         var (data, error) = await api.GetManagerTeamTimesheetsAsync(weekParam);

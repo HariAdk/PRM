@@ -1,5 +1,6 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Config;
 
 namespace ProjectManagementSystem.Client.Screens.Admin;
@@ -39,7 +40,7 @@ public class SystemConfigScreen(ApiClient api)
                 case "2":
                     Console.WriteLine("\nProvider: (1) Gemini   (2) Groq");
                     var pc = ConsoleUI.Prompt("Enter choice");
-                    var provider = pc == "2" ? "Groq" : "Gemini";
+                    var provider = pc == "2" ? LlmProviders.Groq : LlmProviders.Gemini;
                     await SaveConfigAsync(config with { LlmProvider = provider });
                     break;
                 case "3":
@@ -66,7 +67,7 @@ public class SystemConfigScreen(ApiClient api)
     {
         var (_, error) = await api.UpdateConfigAsync(dto);
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Configuration updated.");
+        else ConsoleUI.Success(SuccessMessages.ConfigurationUpdated);
         ConsoleUI.PressAnyKey();
     }
 }

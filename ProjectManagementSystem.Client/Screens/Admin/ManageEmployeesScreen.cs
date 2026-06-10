@@ -144,7 +144,7 @@ public class ManageEmployeesScreen(ApiClient api)
 
         var (_, error) = await api.UpdateEmployeeAsync(id, dto);
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Employee updated.");
+        else ConsoleUI.Success(SuccessMessages.EmployeeUpdated);
         ConsoleUI.PressAnyKey();
     }
 
@@ -174,7 +174,7 @@ public class ManageEmployeesScreen(ApiClient api)
 
         var (_, error) = await api.DeactivateEmployeeAsync(id);
         if (error is not null) ConsoleUI.Error(error);
-        else ConsoleUI.Success("Employee deactivated.");
+        else ConsoleUI.Success(SuccessMessages.EmployeeDeactivated);
         ConsoleUI.PressAnyKey();
     }
 

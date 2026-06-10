@@ -1,5 +1,6 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.DTOs.Manager;
 
@@ -70,13 +71,21 @@ public class AllocateResourceScreen(ApiClient api)
         if (error is not null) { ConsoleUI.Error(error); ConsoleUI.PressAnyKey(); return; }
 
         ConsoleUI.Divider();
-        Console.WriteLine("AI-MATCHED RESULTS");
+        if (result?.UsedFallback == true)
+        {
+            Console.WriteLine("KEYWORD-MATCHED RESULTS (AI unavailable)");
+            ConsoleUI.Info("Showing only your team members whose skills or activity match your requirement.");
+        }
+        else
+            Console.WriteLine("AI-MATCHED RESULTS");
         ConsoleUI.Divider();
 
         var matches = result?.Matches ?? [];
         if (matches.Count == 0)
         {
-            ConsoleUI.Warning("No matching employees found.");
+            ConsoleUI.Warning(result?.UsedFallback == true
+                ? "No team members match that requirement. Try different keywords or use direct allocation."
+                : "No matching employees found.");
             ConsoleUI.PressAnyKey();
             return;
         }
@@ -93,7 +102,8 @@ public class AllocateResourceScreen(ApiClient api)
             }),
             rightAlignColumnIndexes: [0]);
 
-        ConsoleUI.AiNote("Suggestions are AI-generated. Verify before confirming.");
+        if (result?.UsedFallback != true)
+            ConsoleUI.AiNote("Suggestions are AI-generated. Verify before confirming.");
         ConsoleUI.Divider();
 
         var choice = ConsoleUI.Prompt("Select employee (enter #, or 0 to search again)");
@@ -143,8 +153,8 @@ public class AllocateResourceScreen(ApiClient api)
         var toStr = ConsoleUI.Prompt("To Date         (DD-MM-YYYY)");
 
         if (!int.TryParse(percentStr, out var percent) ||
-            !DateOnly.TryParseExact(fromStr, "dd-MM-yyyy", out var from) ||
-            !DateOnly.TryParseExact(toStr, "dd-MM-yyyy", out var to))
+            !DateOnly.TryParseExact(fromStr, UiFormats.DisplayDate, out var from) ||
+            !DateOnly.TryParseExact(toStr, UiFormats.DisplayDate, out var to))
         { ConsoleUI.Error("Invalid input."); ConsoleUI.PressAnyKey(); return; }
 
         Console.WriteLine("\nValidating...");

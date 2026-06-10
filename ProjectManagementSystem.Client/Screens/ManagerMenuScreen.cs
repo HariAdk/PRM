@@ -2,6 +2,7 @@ using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
 using ProjectManagementSystem.Client.Session;
 using ProjectManagementSystem.Client.Screens.Manager;
+using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens;
 
@@ -13,7 +14,7 @@ public class ManagerMenuScreen(ApiClient api, SessionContext session)
         while (true)
         {
             Console.Clear();
-            var now = DateTime.Now.ToString("dd-MMM-yyyy  HH:mm");
+            var now = DateTime.Now.ToString(UiFormats.DisplayDateTimeShort);
             ConsoleUI.DrawBox($"Welcome, {session.FullName}!  |  {now}");
 
             ConsoleUI.Menu(1, "Resource Dashboard");

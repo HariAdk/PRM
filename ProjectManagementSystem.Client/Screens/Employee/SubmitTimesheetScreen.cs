@@ -1,5 +1,6 @@
 using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Timesheet;
 
 namespace ProjectManagementSystem.Client.Screens.Employee;
@@ -18,9 +19,9 @@ public class SubmitTimesheetScreen(ApiClient api)
         string? weekParam = null;
         if (!string.IsNullOrWhiteSpace(weekStr))
         {
-            if (!DateOnly.TryParseExact(weekStr, "dd-MM-yyyy", out var week))
+            if (!DateOnly.TryParseExact(weekStr, UiFormats.DisplayDate, out var week))
             { ConsoleUI.Error("Invalid date format. Use DD-MM-YYYY."); ConsoleUI.PressAnyKey(); return; }
-            weekParam = week.ToDateTime(TimeOnly.MinValue).ToString("yyyy-MM-dd");
+            weekParam = week.ToDateTime(TimeOnly.MinValue).ToString(UiFormats.ApiWeekStart);
         }
 
         var (context, error) = await api.GetEmployeeSubmitContextAsync(weekParam);
@@ -35,7 +36,7 @@ public class SubmitTimesheetScreen(ApiClient api)
 
         if (context.AlreadySubmitted)
         {
-            ConsoleUI.Warning("A timesheet for this week has already been submitted.");
+            ConsoleUI.Warning(ErrorMessages.TimesheetAlreadySubmitted);
             ConsoleUI.PressAnyKey();
             return;
         }

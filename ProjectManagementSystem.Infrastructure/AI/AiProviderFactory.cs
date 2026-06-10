@@ -18,18 +18,18 @@ public sealed class AiProviderFactory(
     public IAiProvider Create(SystemConfigDto config)
     {
         if (!IsConfigured(config))
-            throw new InvalidOperationException("LLM is not configured. Add an API key in System Configuration.");
+            throw new InvalidOperationException(ErrorMessages.LlmNotConfigured);
 
         var provider = config.LlmProvider.Trim();
         var apiKey = config.LlmApiKey.Trim();
 
         return provider.Equals(LlmProviders.Groq, StringComparison.OrdinalIgnoreCase)
             ? new GroqAiProvider(
-                httpClientFactory.CreateClient("Groq"),
+                httpClientFactory.CreateClient(HttpClientNames.Groq),
                 apiKey,
                 loggerFactory.CreateLogger<GroqAiProvider>())
             : new GeminiAiProvider(
-                httpClientFactory.CreateClient("Gemini"),
+                httpClientFactory.CreateClient(HttpClientNames.Gemini),
                 apiKey,
                 loggerFactory.CreateLogger<GeminiAiProvider>());
     }

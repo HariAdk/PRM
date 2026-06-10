@@ -1,3 +1,4 @@
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.DTOs.Project;
 using ProjectManagementSystem.Core.DTOs.Timesheet;
@@ -24,7 +25,7 @@ public static class ProjectHealthCalculator
 
         foreach (var alloc in allocations.Where(a => a.IsActive))
         {
-            var expected = Math.Round(alloc.UtilisationPercent * maxWeeklyHours / 100m, 0);
+            var expected = Math.Round((decimal)alloc.UtilisationPercent * maxWeeklyHours / AllocationLimits.MaxUtilisationPercent, 0);
             if (expected <= 0) continue;
 
             var logged = weekTimesheets

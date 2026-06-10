@@ -6,14 +6,12 @@ using ProjectManagementSystem.Client.Session;
 using ProjectManagementSystem.Client.Screens;
 
 // -- Bootstrap -----------------------------------------------------------------
-Console.Title = "Project & Resource Management Tool";
+Console.Title = ClientDefaults.ApplicationTitle;
 Console.OutputEncoding = Encoding.UTF8;
 Console.InputEncoding = Encoding.UTF8;
 
-const string apiBaseUrl = "https://localhost:7171/";
-
 var session = new SessionContext();
-var api     = new ApiClient(apiBaseUrl);
+var api     = new ApiClient(ClientDefaults.ApiBaseUrl);
 var router  = new ScreenRouter(api, session);
 var start   = new StartScreen(api, session);
 

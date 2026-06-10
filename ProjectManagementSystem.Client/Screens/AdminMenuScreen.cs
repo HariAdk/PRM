@@ -2,6 +2,7 @@ using ProjectManagementSystem.Client.Api;
 using ProjectManagementSystem.Client.Helpers;
 using ProjectManagementSystem.Client.Session;
 using ProjectManagementSystem.Client.Screens.Admin;
+using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens;
 
@@ -15,7 +16,7 @@ public class AdminMenuScreen(ApiClient api, SessionContext session)
         while (true)
         {
             Console.Clear();
-            var now = DateTime.Now.ToString("dd-MM-yyyy  HH:mm");
+            var now = DateTime.Now.ToString(UiFormats.DisplayDateTime);
             ConsoleUI.DrawBox("ADMIN PANEL", $"Welcome, {session.FullName}  |  {now}");
 
             ConsoleUI.Menu(1, "Manage Employees");

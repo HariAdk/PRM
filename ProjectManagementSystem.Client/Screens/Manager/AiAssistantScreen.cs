@@ -68,10 +68,14 @@ public class AiAssistantScreen(ApiClient api)
 
         if (error is not null) { ConsoleUI.Error(error); ConsoleUI.PressAnyKey(); return; }
 
+        if (result?.UsedFallback == true)
+            ConsoleUI.Info("AI unavailable — showing keyword matches from your team only.");
         Console.WriteLine("\nResults:");
         var matches = result?.Matches ?? [];
         if (matches.Count == 0)
-            ConsoleUI.Warning("No matches found.");
+            ConsoleUI.Warning(result?.UsedFallback == true
+                ? "No team members match that requirement."
+                : "No matches found.");
         else
         {
             ConsoleUI.RenderTable(

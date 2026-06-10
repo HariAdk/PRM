@@ -1,6 +1,7 @@
 namespace ProjectManagementSystem.Client.Helpers;
 
 using System.Text;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Manager;
 
 /// <summary>
@@ -27,8 +28,8 @@ public static class ConsoleUI
     {
         try
         {
-            var w = Console.WindowWidth;
-            if (w >= MinContentWidth) return w - 2;
+            var width = Console.WindowWidth;
+            if (width >= MinContentWidth) return width - 2;
         }
         catch
         {
@@ -38,9 +39,9 @@ public static class ConsoleUI
         return MinContentWidth;
     }
 
-    public static string FormatDate(DateOnly date) => date.ToString("dd-MMM-yyyy");
+    public static string FormatDate(DateOnly date) => date.ToString(UiFormats.DisplayDateShort);
 
-    public static string FormatDate(DateTime date) => date.ToString("dd-MMM-yyyy");
+    public static string FormatDate(DateTime date) => date.ToString(UiFormats.DisplayDateShort);
 
     public static string FormatPercent(int value) => $"{value}%";
 
@@ -183,13 +184,13 @@ public static class ConsoleUI
         var colCount = headers.Length;
         var widths = new int[colCount];
 
-        for (var i = 0; i < colCount; i++)
+        for (var itr = 0; itr < colCount; itr++)
         {
-            widths[i] = headers[i].Length;
+            widths[itr] = headers[itr].Length;
             foreach (var row in rowList)
             {
-                if (i < row.Length)
-                    widths[i] = Math.Max(widths[i], row[i].Length);
+                if (itr < row.Length)
+                    widths[itr] = Math.Max(widths[itr], row[itr].Length);
             }
         }
 

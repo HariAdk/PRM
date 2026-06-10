@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Employee;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
@@ -88,7 +89,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
             .Include(e => e.User)
             .Include(e => e.ReportingManager)
             .FirstOrDefaultAsync(e => e.UserId == employeeUserId)
-            ?? throw new KeyNotFoundException($"Employee profile not found for user {employeeUserId}.");
+            ?? throw new KeyNotFoundException(ErrorMessages.EmployeeProfileNotFoundForUser(employeeUserId));
 
         employee.ManagerId = managerUserId;
         await db.SaveChangesAsync();
@@ -131,7 +132,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
         var employee = await db.Employees
             .Include(e => e.User)
             .FirstOrDefaultAsync(e => e.Id == id)
-            ?? throw new KeyNotFoundException($"Employee {id} not found.");
+            ?? throw new KeyNotFoundException(ErrorMessages.EmployeeNotFoundById(id));
         employee.FullName = dto.FullName;
         employee.Email = dto.Email;
         employee.Department = dto.Department;
@@ -143,7 +144,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
     public async Task DeactivateAsync(int id)
     {
         var employee = await db.Employees.FindAsync(id)
-                       ?? throw new KeyNotFoundException($"Employee {id} not found.");
+                       ?? throw new KeyNotFoundException(ErrorMessages.EmployeeNotFoundById(id));
 
         var activeAllocations = await db.Allocations
             .Where(a => a.EmployeeId == id && a.IsActive)
@@ -173,7 +174,7 @@ public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepo
     public async Task SetStatusAsync(int employeeId, EmployeeStatus status)
     {
         var employee = await db.Employees.FindAsync(employeeId)
-                       ?? throw new KeyNotFoundException($"Employee {employeeId} not found.");
+                       ?? throw new KeyNotFoundException(ErrorMessages.EmployeeNotFoundById(employeeId));
         employee.Status = status;
         await db.SaveChangesAsync();
     }

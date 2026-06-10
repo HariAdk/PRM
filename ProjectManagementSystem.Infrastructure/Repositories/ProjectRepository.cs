@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Project;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
@@ -35,7 +36,7 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
     public async Task UpdateHealthStatusAsync(int projectId, ProjectHealth health)
     {
         var project = await db.Projects.FindAsync(projectId)
-                      ?? throw new KeyNotFoundException($"Project {projectId} not found.");
+                      ?? throw new KeyNotFoundException(ErrorMessages.ProjectNotFoundById(projectId));
         project.HealthStatus = health;
         await db.SaveChangesAsync();
     }
@@ -62,7 +63,7 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
     public async Task<ProjectDto> UpdateAsync(int id, UpdateProjectDto dto)
     {
         var project = await db.Projects.Include(p => p.Manager).FirstOrDefaultAsync(p => p.Id == id)
-                      ?? throw new KeyNotFoundException($"Project {id} not found.");
+                      ?? throw new KeyNotFoundException(ErrorMessages.ProjectNotFoundById(id));
         project.Name = dto.Name;
         project.Description = dto.Description;
         project.StartDate = dto.StartDate;
@@ -97,7 +98,7 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
     {
         var milestone = await db.Milestones
             .FirstOrDefaultAsync(m => m.Id == milestoneId && m.ProjectId == projectId)
-            ?? throw new KeyNotFoundException($"Milestone {milestoneId} not found.");
+            ?? throw new KeyNotFoundException(ErrorMessages.MilestoneNotFound(milestoneId));
         milestone.Status = Enum.Parse<MilestoneStatus>(dto.Status, ignoreCase: true);
         await db.SaveChangesAsync();
         return mapper.Map<MilestoneDto>(milestone);

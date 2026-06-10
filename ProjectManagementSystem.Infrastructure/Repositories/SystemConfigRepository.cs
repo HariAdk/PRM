@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Config;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Infrastructure.Data;
@@ -17,7 +18,7 @@ public class SystemConfigRepository(AppDbContext db, IMapper mapper) : ISystemCo
     public async Task UpdateAsync(SystemConfigDto dto)
     {
         var config = await db.SystemConfigs.FirstOrDefaultAsync()
-                     ?? throw new InvalidOperationException("SystemConfig not found.");
+                     ?? throw new InvalidOperationException(ErrorMessages.SystemConfigMissing);
         config.LlmProvider = dto.LlmProvider;
         config.LlmApiKey = dto.LlmApiKey;
         config.SchedulerIntervalHours = dto.SchedulerIntervalHours;
