@@ -1,9 +1,5 @@
 # PRM Tool — Flow Diagrams
 
-> Rendered with [Mermaid](https://mermaid.js.org/). View in GitHub, VS Code (Markdown Preview Mermaid Support), or [mermaid.live](https://mermaid.live).
-
----
-
 ## Table of Contents
 
 1. [Application Startup & Login Flow](#1-application-startup--login-flow)

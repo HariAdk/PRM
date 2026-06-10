@@ -1,9 +1,5 @@
 # PRM Tool — Class Diagram
 
-> Rendered with [Mermaid](https://mermaid.js.org/). View in GitHub, VS Code (Markdown Preview Mermaid Support), or [mermaid.live](https://mermaid.live).
-
----
-
 ## 0. Solution Architecture
 
 ```mermaid

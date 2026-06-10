@@ -1,9 +1,5 @@
 # PRM Tool — Use Case Diagram
 
-> Rendered with [Mermaid](https://mermaid.js.org/). View in GitHub, VS Code (Markdown Preview Mermaid Support), or [mermaid.live](https://mermaid.live).
-
----
-
 ## 1. System Overview & Actors
 
 The **Project & Resource Management (PRM) System** is a client-server application designed to streamline resource planning, project milestone tracking, timesheet management, and AI-driven skill matching/risk analysis.

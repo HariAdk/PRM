@@ -1,9 +1,5 @@
 # PRM Tool — Sequence Diagrams
 
-> Rendered with [Mermaid](https://mermaid.js.org/). View in GitHub, VS Code (Markdown Preview Mermaid Support), or [mermaid.live](https://mermaid.live).
-
----
-
 ## Table of Contents
 
 1. [Login & Force Password Change](#1-login--force-password-change)
