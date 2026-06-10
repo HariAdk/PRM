@@ -4,10 +4,6 @@ using ProjectManagementSystem.Core.Exceptions;
 
 namespace ProjectManagementSystem.Middleware;
 
-/// <summary>
-/// Maps exceptions to HTTP status codes and user-facing messages.
-/// Kept separate from <see cref="ExceptionHandlingMiddleware"/> so mapping rules are easy to test and extend.
-/// </summary>
 internal static class ExceptionResponseMapper
 {
     public static ExceptionMappingResult Map(Exception exception) =>

@@ -10,7 +10,6 @@ using ProjectManagementSystem.Extensions;
 
 namespace ProjectManagementSystem.Controllers;
 
-/// <summary>Screen 5 — Employee endpoints</summary>
 [ApiController]
 [Route("api/employee")]
 [Authorize(Roles = RoleNames.Employee)]

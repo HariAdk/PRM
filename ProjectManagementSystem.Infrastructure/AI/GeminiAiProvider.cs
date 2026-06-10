@@ -7,7 +7,6 @@ using ProjectManagementSystem.Core.Interfaces.AI;
 
 namespace ProjectManagementSystem.Infrastructure.AI;
 
-/// <summary>Google Gemini REST adapter.</summary>
 public sealed class GeminiAiProvider(
     HttpClient httpClient,
     string apiKey,

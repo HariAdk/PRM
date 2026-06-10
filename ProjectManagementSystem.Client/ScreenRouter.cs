@@ -4,9 +4,6 @@ using ProjectManagementSystem.Client.Session;
 
 namespace ProjectManagementSystem.Client;
 
-/// <summary>
-/// Routes the logged-in user to the correct role-based menu via <see cref="IScreenFactory"/>.
-/// </summary>
 public class ScreenRouter(IScreenFactory screenFactory, SessionContext session)
 {
     public async Task RouteAsync()

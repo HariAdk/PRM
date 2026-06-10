@@ -3,10 +3,6 @@ using ProjectManagementSystem.Core.DTOs.Common;
 
 namespace ProjectManagementSystem.Middleware;
 
-/// <summary>
-/// Catches unhandled exceptions and returns consistent <see cref="ApiResponse{T}"/> JSON.
-/// Mapping rules live in <see cref="ExceptionResponseMapper"/>.
-/// </summary>
 public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
 {
     private static readonly JsonSerializerOptions JsonOpts = new()

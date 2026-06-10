@@ -17,18 +17,15 @@ using ProjectManagementSystem.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── JWT Settings ──────────────────────────────────────────────────────────────
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtSettings>(jwtSection);
 var jwtSettings = jwtSection.Get<JwtSettings>()!;
 
-// ── Database ─────────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
-// ── AI adapters (Gemini / Groq) ───────────────────────────────────────────────
 builder.Services.AddHttpClient(HttpClientNames.Gemini, client =>
 {
     client.BaseAddress = new Uri(ExternalApiDefaults.GeminiBaseUrl);
@@ -41,7 +38,7 @@ builder.Services.AddHttpClient(HttpClientNames.Groq, client =>
 });
 builder.Services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
 
-// ── Repositories ─────────────────────────────────────────────────────────────
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ISkillRepository, SkillRepository>();
@@ -50,14 +47,11 @@ builder.Services.AddScoped<IAllocationRepository, AllocationRepository>();
 builder.Services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
 builder.Services.AddScoped<ITimesheetRepository, TimesheetRepository>();
 
-// ── Application services ──────────────────────────────────────────────────────
 builder.Services.AddApplicationServices();
 builder.Services.AddHostedService<SchedulerHostedService>();
 
-// ── Seeder ───────────────────────────────────────────────────────────────────
 builder.Services.AddScoped<DatabaseSeeder>();
 
-// ── JWT Authentication ────────────────────────────────────────────────────────
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -76,7 +70,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// ── Controllers & Swagger (with JWT support) ──────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -109,7 +102,6 @@ var app = builder.Build();
 
 app.UseExceptionHandling();
 
-// ── Run Migrations + Seed on startup ─────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

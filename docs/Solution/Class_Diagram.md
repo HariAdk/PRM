@@ -1,4 +1,4 @@
-# PRM Tool � Class Diagram
+# PRM Tool — Class Diagram
 
 > Rendered with [Mermaid](https://mermaid.js.org/). View in GitHub, VS Code (Markdown Preview Mermaid Support), or [mermaid.live](https://mermaid.live).
 
@@ -10,6 +10,7 @@
 graph TB
     subgraph ClientLayer["ProjectManagementSystem.Client"]
         Screens[Screens / ScreenRouter]
+        ScreenFactory[IScreenFactory / ScreenFactory]
         ApiClient[ApiClient]
         ConsoleUI[ConsoleUI Helper]
         Session[SessionContext]
@@ -17,12 +18,20 @@ graph TB
 
     subgraph ApiLayer["ProjectManagementSystem (Web API)"]
         Controllers[Controllers]
-        Services[Services]
+        Middleware[ExceptionHandlingMiddleware]
+        Hosting[SchedulerHostedService]
+    end
+
+    subgraph AppLayer["ProjectManagementSystem.Application"]
+        Services[Business Services]
+        AIHelpers[AiPromptBuilder / AiFallbackMatcher]
     end
 
     subgraph CoreLayer["ProjectManagementSystem.Core"]
         DTOs[DTOs]
         Enums[Enums]
+        Constants[Constants]
+        Exceptions[Custom Exceptions]
         Interfaces[Repository & Service Interfaces]
     end
 
@@ -30,15 +39,21 @@ graph TB
         Models[EF Entity Models]
         Repositories[Repositories]
         Mapping[MappingProfile + AutoMapper]
+        AIProviders[Gemini / Groq Providers]
         DbContext[AppDbContext]
     end
 
     DB[(SQL Server)]
 
+    Screens --> ScreenFactory
     Screens --> ApiClient
     ApiClient --> Controllers
     Controllers --> Services
+    Middleware --> Controllers
+    Hosting --> Services
     Services --> Interfaces
+    Services --> AIHelpers
+    Services --> AIProviders
     Repositories --> Interfaces
     Repositories --> Mapping
     Mapping --> DTOs
@@ -50,10 +65,14 @@ graph TB
 
 | Project | Responsibility |
 |---|---|
-| `ProjectManagementSystem.Client` | Console UI, JWT session, HTTP calls via `ApiClient` |
-| `ProjectManagementSystem` | ASP.NET Core Web API � controllers & business services |
-| `ProjectManagementSystem.Core` | DTOs, enums, interfaces (no EF dependencies) |
-| `ProjectManagementSystem.Infrastructure` | EF Core models, repositories, AutoMapper profiles, migrations |
+| `ProjectManagementSystem.Client` | Console UI, JWT session, `ScreenFactory` navigation, HTTP calls via `ApiClient` |
+| `ProjectManagementSystem` | ASP.NET Core Web API — controllers, exception middleware, hosted scheduler |
+| `ProjectManagementSystem.Application` | Business services (`AuthService`, `ManagerService`, `AiService`, etc.) |
+| `ProjectManagementSystem.Core` | DTOs, enums, constants, interfaces, custom exceptions (no EF dependencies) |
+| `ProjectManagementSystem.Infrastructure` | EF Core models, repositories, AutoMapper profiles, AI provider adapters, migrations |
+| `ProjectManagementSystem.Tests` | xUnit unit tests for Application services |
+
+**DI composition root (`Program.cs`):** repositories and infrastructure wired in the API host; application services via `AddApplicationServices()`.
 
 ---
 
@@ -131,11 +150,13 @@ classDiagram
         +DateTime CreatedAt
         +Employee? Employee
         +ICollection~Project~ ManagedProjects
+        +ICollection~Employee~ DirectReports
     }
 
     class Employee {
         +int Id
         +int UserId
+        +int? ManagerId
         +string FullName
         +string Email
         +string Department
@@ -143,6 +164,7 @@ classDiagram
         +EmployeeStatus Status
         +bool IsActive
         +User User
+        +User? ReportingManager
         +ICollection~EmployeeSkill~ Skills
         +ICollection~Allocation~ Allocations
         +ICollection~Timesheet~ Timesheets
@@ -173,6 +195,7 @@ classDiagram
         +DateOnly EndDate
         +ProjectStatus Status
         +ProjectHealth HealthStatus
+        +int TotalStoryPoints
         +User Manager
         +ICollection~Milestone~ Milestones
         +ICollection~Allocation~ Allocations
@@ -185,6 +208,7 @@ classDiagram
         +string Title
         +DateOnly DueDate
         +MilestoneStatus Status
+        +int StoryPoints
         +Project Project
     }
 
@@ -229,8 +253,9 @@ classDiagram
         +int MaxWeeklyHours
     }
 
-    User "1" --> "0..1" Employee
-    User "1" --> "0..*" Project
+    User "1" --> "0..1" Employee : profile
+    User "1" --> "0..*" Project : manages
+    User "1" --> "0..*" Employee : reports to (ManagerId)
     Employee "1" --> "0..*" EmployeeSkill
     Skill "1" --> "0..*" EmployeeSkill
     Project "1" --> "0..*" Milestone
@@ -240,6 +265,8 @@ classDiagram
     Timesheet "1" --> "1..*" TimesheetEntry
     Project "1" --> "0..*" TimesheetEntry
 ```
+
+> **BRD V4 additions:** `Employee.ManagerId` links an employee to their reporting manager (`User.Id`). `Project.TotalStoryPoints` is admin-set; `Milestone.StoryPoints` tracks per-deliverable estimates. `CompletedStoryPoints` is computed in DTOs from Done milestones.
 
 ---
 
@@ -294,14 +321,14 @@ classDiagram
         -IMapper mapper
     }
 
-    MappingProfile ..> User : Entity to DTO
-    MappingProfile ..> Employee : Entity to DTO
-    MappingProfile ..> Project : Entity to DTO
-    MappingProfile ..> Milestone : Entity to DTO
-    MappingProfile ..> Allocation : Entity to DTO
-    MappingProfile ..> EmployeeSkill : Entity to DTO
-    MappingProfile ..> SystemConfig : Entity to DTO
-    MappingProfile ..> Timesheet : Entity to DTO
+    MappingProfile ..> User : Entity ↔ DTO
+    MappingProfile ..> Employee : Entity ↔ DTO
+    MappingProfile ..> Project : Entity ↔ DTO + CompletedStoryPoints
+    MappingProfile ..> Milestone : Entity ↔ DTO
+    MappingProfile ..> Allocation : Entity ↔ DTO
+    MappingProfile ..> EmployeeSkill : Entity ↔ DTO
+    MappingProfile ..> SystemConfig : Entity ↔ DTO
+    MappingProfile ..> Timesheet : Entity ↔ DTO
 
     UserRepository --> IMapper : uses
     EmployeeRepository --> IMapper : uses
@@ -318,7 +345,7 @@ classDiagram
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 ```
 
-**Key mappings:** enum-to-string for DTOs, navigation properties (`ManagerName`, `EmployeeName`, `ProjectName`, `SkillName`), `Create*Dto` ? entity with ignored navigations and defaults.
+**Key mappings:** enum-to-string for DTOs, navigation properties (`ManagerName`, `EmployeeName`, `ProjectName`, `SkillName`), `Create*Dto` / `Update*Dto` → entity with ignored navigations and defaults.
 
 ---
 
@@ -334,7 +361,7 @@ classDiagram
         +GetByIdAsync(id) Task~UserDto~
         +GetByUsernameAsync(username) Task~User~
         +GetAllAsync() Task~IEnumerable~UserDto~~
-        +CreateAsync(dto) Task~UserDto~
+        +CreateAsync(dto, hash, forcePasswordChange) Task~UserDto~
         +UpdateAsync(user) Task
         +ExistsAsync(username, email) Task~bool~
     }
@@ -344,10 +371,14 @@ classDiagram
         +GetByIdAsync(id) Task~EmployeeDto~
         +GetAllAsync() Task~IEnumerable~EmployeeDto~~
         +GetByUserIdAsync(userId) Task~EmployeeDto~
-        +CreateAsync(dto) Task~EmployeeDto~
+        +CreateProfileForUserAsync(userId, name, email) Task~EmployeeDto~
         +UpdateAsync(id, dto) Task~EmployeeDto~
         +DeactivateAsync(id) Task
         +SetStatusAsync(id, status) Task
+        +AssignManagerAsync(employeeUserId, managerUserId) Task~EmployeeDto~
+        +GetTeamAllocatableResourcesAsync(managerUserId) Task
+        +IsOnManagerTeamAsync(managerUserId, employeeId) Task~bool~
+        +GetTeamEmployeeIdsAsync(managerUserId) Task
     }
 
     class IProjectRepository {
@@ -397,41 +428,6 @@ classDiagram
         +UpdateAsync(dto) Task
     }
 
-    class UserRepository {
-        -AppDbContext db
-        -IMapper mapper
-    }
-
-    class EmployeeRepository {
-        -AppDbContext db
-        -IMapper mapper
-    }
-
-    class ProjectRepository {
-        -AppDbContext db
-        -IMapper mapper
-    }
-
-    class AllocationRepository {
-        -AppDbContext db
-        -IMapper mapper
-    }
-
-    class TimesheetRepository {
-        -AppDbContext db
-        -IMapper mapper
-    }
-
-    class SkillRepository {
-        -AppDbContext db
-        -IMapper mapper
-    }
-
-    class SystemConfigRepository {
-        -AppDbContext db
-        -IMapper mapper
-    }
-
     IUserRepository <|.. UserRepository
     IEmployeeRepository <|.. EmployeeRepository
     IProjectRepository <|.. ProjectRepository
@@ -443,7 +439,7 @@ classDiagram
 
 ---
 
-## 4. Service Layer (`ProjectManagementSystem/Services/`)
+## 4. Application Service Layer (`ProjectManagementSystem.Application/`)
 
 ```mermaid
 classDiagram
@@ -451,7 +447,6 @@ classDiagram
     class IAuthService {
         <<interface>>
         +LoginAsync(request) Task~LoginResponseDto~
-        +SignUpAsync(request) Task~UserDto~
         +ChangePasswordAsync(userId, dto) Task
     }
 
@@ -467,9 +462,9 @@ classDiagram
     class IEmployeeService {
         <<interface>>
         +GetAllAsync() Task~IEnumerable~EmployeeDto~~
-        +CreateAsync(dto) Task~EmployeeDto~
         +UpdateAsync(id, dto) Task
         +DeactivateAsync(id) Task
+        +AssignManagerAsync(dto) Task~EmployeeDto~
     }
 
     class IProjectService {
@@ -488,24 +483,30 @@ classDiagram
         +GetAllActiveAsync() Task~IEnumerable~AllocationDto~~
         +GetByProjectIdAsync(projectId) Task~IEnumerable~AllocationDto~~
         +GetByIdAsync(id) Task~AllocationDto~
-        +CreateAsync(dto) Task~AllocationDto~
-        +EndAsync(id, endDate) Task
+        +CreateAsync(dto, managerUserId) Task~AllocationDto~
+        +EndAsync(id, endDate, managerUserId) Task
     }
 
     class ITimesheetService {
         <<interface>>
         +GetTeamTimesheetsAsync(managerId, weekStart) Task~ManagerTeamTimesheetDto~
-        +GetTimesheetByIdAsync(id) Task~TimesheetDto~
+        +GetTimesheetByIdAsync(id, managerId) Task~TimesheetDto~
     }
 
     class IManagerService {
         <<interface>>
-        +GetResourceDashboardAsync() Task~ResourceDashboardDto~
-        +GetEmployeeDetailAsync(id) Task~EmployeeDetailDto~
+        +GetResourceDashboardAsync(managerUserId) Task~ResourceDashboardDto~
+        +GetEmployeeDetailAsync(id, managerUserId) Task~EmployeeDetailDto~
         +GetMyProjectsAsync(managerId) Task~IEnumerable~ProjectDto~~
         +GetProjectDetailAsync(managerId, projectId) Task~ProjectDetailDto~
-        +GetAISkillMatchAsync(request) Task~AISkillMatchResultDto~
+        +GetAISkillMatchAsync(request, managerUserId) Task~AISkillMatchResultDto~
         +GetAIRiskSummaryAsync(request) Task~AIRiskSummaryResultDto~
+    }
+
+    class IAiService {
+        <<interface>>
+        +GetSkillMatchAsync(request, managerUserId) Task~AISkillMatchResultDto~
+        +GetRiskSummaryAsync(request) Task~AIRiskSummaryResultDto~
     }
 
     class IEmployeePortalService {
@@ -525,26 +526,18 @@ classDiagram
 
     class ManagerService {
         -IEmployeeRepository employeeRepo
-        -IAllocationRepository allocationRepo
-        -IProjectRepository projectRepo
-        -ISkillRepository skillRepo
-        -ITimesheetRepository timesheetRepo
-        -ISystemConfigRepository configRepo
-        +ComputeDisplayHealth() ProjectHealth
+        -IAiService aiService
+        +team-scoped queries via ManagerId
     }
 
-    class EmployeePortalService {
-        -IEmployeeRepository employeeRepo
-        -IAllocationRepository allocationRepo
-        -ITimesheetRepository timesheetRepo
-        -ISystemConfigRepository configRepo
+    class AiService {
+        -IAiProviderFactory providerFactory
+        -SkillRequirementMatcher pre-filter
+        -AiFallbackMatcher rule-based fallback
     }
 
-    class SchedulerService {
-        -IEmployeeRepository employeeRepo
-        -IProjectRepository projectRepo
-        -ITimesheetRepository timesheetRepo
-        -IAllocationRepository allocationRepo
+    class UserService {
+        +CreateAsync auto-creates Employee profile when role = Employee
     }
 
     class SchedulerHostedService {
@@ -553,21 +546,60 @@ classDiagram
     }
 
     IManagerService <|.. ManagerService
-    IEmployeePortalService <|.. EmployeePortalService
+    IAiService <|.. AiService
+    IUserService <|.. UserService
     ISchedulerService <|.. SchedulerService
+    ManagerService --> IAiService
     SchedulerHostedService --> ISchedulerService : invokes via scope
 ```
 
 ---
 
-## 5. API Controllers
+## 5. Exception Handling (`Core/Exceptions/` + `Middleware/`)
+
+```mermaid
+classDiagram
+
+    class AppException {
+        <<abstract>>
+        +AppErrorKind Kind
+        +string Message
+    }
+
+    class NotFoundException
+    class BusinessRuleException
+    class ValidationException
+    class UnauthorizedAppException
+    class ForbiddenAppException
+
+    class ExceptionResponseMapper {
+        <<static>>
+        +Map(exception) ExceptionMappingResult
+    }
+
+    class ExceptionHandlingMiddleware {
+        +InvokeAsync(context, next) Task
+    }
+
+    AppException <|-- NotFoundException
+    AppException <|-- BusinessRuleException
+    AppException <|-- ValidationException
+    AppException <|-- UnauthorizedAppException
+    AppException <|-- ForbiddenAppException
+
+    ExceptionHandlingMiddleware --> ExceptionResponseMapper : uses
+```
+
+---
+
+## 6. API Controllers
 
 ```mermaid
 classDiagram
 
     class AuthController {
         +POST /api/auth/login
-        +POST /api/auth/signup
+        +POST /api/auth/signup → 403 Disabled
         +PUT /api/auth/change-password
     }
 
@@ -579,14 +611,16 @@ classDiagram
 
     class EmployeesController {
         <<Authorize Admin>>
-        +GET/POST /api/employees
-        +PUT/DELETE skills
+        +GET /api/employees
+        +PUT /api/employees/{id}
+        +PUT /api/employees/assign-manager
+        +PUT deactivate, skills CRUD
     }
 
     class ProjectsController {
         <<Authorize Admin>>
-        +GET/POST /api/projects
-        +milestones CRUD
+        +GET/POST/PUT /api/projects
+        +milestones CRUD with story points
     }
 
     class AllocationsController {
@@ -601,82 +635,88 @@ classDiagram
 
     class ManagerController {
         <<Authorize Manager>>
-        +GET /api/manager/dashboard
-        +GET /api/manager/projects
-        +GET /api/manager/projects/id/detail
-        +POST /api/manager/allocations
-        +PUT /api/manager/allocations/id/end
-        +GET /api/manager/timesheets
-        +POST /api/manager/ai/skill-match
-        +POST /api/manager/ai/risk-summary
+        +GET dashboard, employees/{id}
+        +GET/POST projects, allocations
+        +GET timesheets
+        +POST ai/skill-match, ai/risk-summary
+        +team + project ownership checks
     }
 
     class EmployeeController {
         <<Authorize Employee>>
-        +GET /api/employee/reminder
-        +GET /api/employee/allocations
-        +GET /api/employee/timesheets/context
-        +POST /api/employee/timesheets
-        +GET /api/employee/timesheets
+        +GET reminder, allocations
+        +GET/POST timesheets
     }
 
     ManagerController --> IManagerService
     ManagerController --> IAllocationService
-    ManagerController --> IProjectService
     ManagerController --> ITimesheetService
     EmployeeController --> IEmployeePortalService
 ```
 
-> **Note:** AI uses the **Strategy + Factory** adapter pattern (`IAiProvider` → Gemini/Groq). When no API key is configured, `AiService` falls back to rule-based matching. Configure via Admin → System Configuration.
+> **Note:** AI uses the **Strategy + Factory** adapter pattern (`IAiProvider` → Gemini/Groq). `AiService` pre-filters candidates by manager team, availability, and skill keywords; falls back to rule-based matching when LLM is unconfigured or fails (`UsedFallback` flag).
 
 ---
 
-## 6. Console Client � Screen Hierarchy (`ProjectManagementSystem.Client/`)
+## 7. Console Client — Navigation (`ProjectManagementSystem.Client/`)
 
 ```mermaid
 classDiagram
 
     class ApiClient {
         +LoginAsync()
-        +SignUpAsync()
-        +Admin* methods
-        +Manager* methods
-        +Employee* methods
+        +ChangePasswordAsync()
+        +Admin* / Manager* / Employee* methods
     }
 
     class SessionContext {
         +string JwtToken
         +int UserId
         +string FullName
-        +string Role
+        +UserRole Role
         +bool ForcePasswordChange
         +bool IsLoggedIn
+    }
+
+    class IScreenFactory {
+        <<interface>>
+        +CreateRoleMenu(role) IScreen
+        +CreateAdminScreen(action) IScreen
+        +CreateManagerScreen(action) IScreen
+        +CreateEmployeeScreen(action) IScreen
+    }
+
+    class ScreenFactory {
+        +CreateRoleMenu()
+        +CreateAdminScreen()
+        +CreateManagerScreen()
+        +CreateEmployeeScreen()
     }
 
     class ScreenRouter {
         +RouteAsync() Task
     }
 
-    class ConsoleUI {
-        +DrawBox()
-        +Menu()
-        +SubHeader()
-        +HealthIcon()
-        +RiskFlag()
+    class IScreen {
+        <<interface>>
+        +ShowAsync() Task
     }
 
     class StartScreen {
         +ShowAsync() Task
-        -HandleLoginAsync()
+        Menu: Login, Exit only
     }
 
-    class SignUpScreen
     class ChangePasswordScreen
     class AdminMenuScreen
     class ManagerMenuScreen
     class EmployeeMenuScreen
 
-    class ManageEmployeesScreen
+    class ManageEmployeesScreen {
+        View, Update, Deactivate
+        Manage Skills, Assign Manager
+    }
+
     class ManageProjectsScreen
     class ViewAllocationsScreen
     class ManageUsersScreen
@@ -693,27 +733,15 @@ classDiagram
     class ViewTimesheetsScreen
     class ViewMyAllocationsScreen
 
+    IScreenFactory <|.. ScreenFactory
+    ScreenFactory ..> IScreen : creates
     StartScreen --> ApiClient
-    ScreenRouter --> AdminMenuScreen
-    ScreenRouter --> ManagerMenuScreen
-    ScreenRouter --> EmployeeMenuScreen
-
-    AdminMenuScreen --> ManageEmployeesScreen
-    AdminMenuScreen --> ManageProjectsScreen
-    AdminMenuScreen --> ViewAllocationsScreen
-    AdminMenuScreen --> ManageUsersScreen
-    AdminMenuScreen --> SystemConfigScreen
-
-    ManagerMenuScreen --> ResourceDashboardScreen
-    ManagerMenuScreen --> AllocateResourceScreen
-    ManagerMenuScreen --> MyProjectsScreen
-    ManagerMenuScreen --> TimesheetManagerScreen
-    ManagerMenuScreen --> AiAssistantScreen
-
-    EmployeeMenuScreen --> SubmitTimesheetScreen
-    EmployeeMenuScreen --> ViewTimesheetsScreen
-    EmployeeMenuScreen --> ViewMyAllocationsScreen
-
+    ScreenRouter --> IScreenFactory
+    AdminMenuScreen --> IScreenFactory
+    ManagerMenuScreen --> IScreenFactory
+    EmployeeMenuScreen --> IScreenFactory
     StartScreen --> SessionContext
     ScreenRouter --> SessionContext
 ```
+
+> **BRD V4:** No `SignUpScreen`. Self-registration removed from client; `POST /api/auth/signup` returns 403. Employee profiles are auto-created when Admin creates a user with role `Employee` via Manage Users.

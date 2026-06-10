@@ -4,10 +4,6 @@ using ProjectManagementSystem.Core.Interfaces.Services;
 
 namespace ProjectManagementSystem.Hosting;
 
-/// <summary>
-/// Background worker that runs scheduler tasks on startup and every N hours
-/// (interval read from system_config.scheduler_interval_hours).
-/// </summary>
 public class SchedulerHostedService(
     IServiceScopeFactory scopeFactory,
     ILogger<SchedulerHostedService> logger) : BackgroundService

@@ -6,7 +6,6 @@ using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens;
 
-/// <summary>Screen 3 — Admin Panel Main Menu</summary>
 public class AdminMenuScreen(ApiClient api, SessionContext session, IScreenFactory screenFactory) : IScreen
 {
     public async Task ShowAsync()

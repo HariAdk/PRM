@@ -12,7 +12,6 @@ using ProjectManagementSystem.Extensions;
 
 namespace ProjectManagementSystem.Controllers;
 
-/// <summary>Screen 4 — Manager endpoints</summary>
 [ApiController]
 [Route("api/manager")]
 [Authorize(Roles = RoleNames.Manager)]

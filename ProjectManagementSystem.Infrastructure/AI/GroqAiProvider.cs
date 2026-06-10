@@ -8,7 +8,6 @@ using ProjectManagementSystem.Core.Interfaces.AI;
 
 namespace ProjectManagementSystem.Infrastructure.AI;
 
-/// <summary>Groq OpenAI-compatible chat adapter.</summary>
 public sealed class GroqAiProvider(
     HttpClient httpClient,
     string apiKey,
