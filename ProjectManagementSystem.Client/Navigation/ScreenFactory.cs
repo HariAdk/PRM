@@ -41,6 +41,7 @@ public sealed class ScreenFactory(ApiClient api, SessionContext session) : IScre
         ManagerMenuAction.AllocateResource => new AllocateResourceScreen(api),
         ManagerMenuAction.MyProjects => new MyProjectsScreen(api),
         ManagerMenuAction.Timesheets => new TimesheetManagerScreen(api),
+        ManagerMenuAction.RestoreTimesheetAccess => new RestoreTimesheetAccessScreen(api),
         ManagerMenuAction.AiAssistant => new AiAssistantScreen(api),
         ManagerMenuAction.Logout => throw new InvalidOperationException("Logout is handled by the menu screen."),
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null)

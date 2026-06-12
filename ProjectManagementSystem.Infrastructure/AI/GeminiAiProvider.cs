@@ -17,22 +17,30 @@ public sealed class GeminiAiProvider(
     public async Task<string> CompleteAsync(
         string systemPrompt,
         string userPrompt,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool jsonResponse = false)
     {
-        var url = $"v1/{ExternalApiDefaults.GeminiModel}:generateContent?key={Uri.EscapeDataString(apiKey)}";
-        var combined = $"{systemPrompt}\n\n{userPrompt}";
+        var url = $"v1beta/{ExternalApiDefaults.GeminiModel}:generateContent?key={Uri.EscapeDataString(apiKey)}";
+
+        var generationConfig = new Dictionary<string, object>
+        {
+            ["temperature"] = ExternalApiDefaults.LlmTemperature,
+            ["maxOutputTokens"] = ExternalApiDefaults.LlmMaxOutputTokens
+        };
+        if (jsonResponse)
+            generationConfig["responseMimeType"] = "application/json";
 
         var payload = new
         {
+            systemInstruction = new
+            {
+                parts = new[] { new { text = systemPrompt } }
+            },
             contents = new[]
             {
-                new { parts = new[] { new { text = combined } } }
+                new { role = "user", parts = new[] { new { text = userPrompt } } }
             },
-            generationConfig = new
-            {
-                temperature = ExternalApiDefaults.LlmTemperature,
-                maxOutputTokens = ExternalApiDefaults.LlmMaxOutputTokens
-            }
+            generationConfig
         };
 
         using var response = await httpClient.PostAsJsonAsync(url, payload, cancellationToken);
@@ -41,12 +49,19 @@ public sealed class GeminiAiProvider(
         if (!response.IsSuccessStatusCode)
         {
             logger.LogWarning("Gemini API error {Status}: {Body}", response.StatusCode, body);
-            throw new BusinessRuleException(ErrorMessages.GeminiApiError((int)response.StatusCode));
+            var detail = ExtractGeminiError(body);
+            throw new BusinessRuleException(
+                string.IsNullOrWhiteSpace(detail)
+                    ? ErrorMessages.GeminiApiError((int)response.StatusCode)
+                    : $"{ErrorMessages.GeminiApiError((int)response.StatusCode)} {detail}");
         }
 
         using var doc = JsonDocument.Parse(body);
-        var text = doc.RootElement
-            .GetProperty("candidates")[0]
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) ||
+            candidates.GetArrayLength() == 0)
+            throw new BusinessRuleException(ErrorMessages.GeminiEmptyResponse);
+
+        var text = candidates[0]
             .GetProperty("content")
             .GetProperty("parts")[0]
             .GetProperty("text")
@@ -56,5 +71,21 @@ public sealed class GeminiAiProvider(
             throw new BusinessRuleException(ErrorMessages.GeminiEmptyResponse);
 
         return text.Trim();
+    }
+
+    private static string ExtractGeminiError(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("error", out var error) &&
+                error.TryGetProperty("message", out var message))
+                return message.GetString() ?? string.Empty;
+        }
+        catch (JsonException)
+        {
+        }
+
+        return body.Length <= 200 ? body : body[..200];
     }
 }

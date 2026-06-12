@@ -163,8 +163,17 @@ public class ApiClient
     public Task<(AISkillMatchResultDto? Data, string? Error)> ManagerSkillMatchAsync(AISkillMatchRequestDto dto) =>
         PostAsync<AISkillMatchRequestDto, AISkillMatchResultDto>(ApiRoutes.ManagerAiSkillMatch, dto);
 
+    public Task<(AITeamBuildResultDto? Data, string? Error)> ManagerTeamBuildAsync(AITeamBuildRequestDto dto) =>
+        PostAsync<AITeamBuildRequestDto, AITeamBuildResultDto>(ApiRoutes.ManagerAiTeamBuild, dto);
+
     public Task<(AIRiskSummaryResultDto? Data, string? Error)> ManagerRiskSummaryAsync(AIRiskSummaryRequestDto dto) =>
         PostAsync<AIRiskSummaryRequestDto, AIRiskSummaryResultDto>(ApiRoutes.ManagerAiRiskSummary, dto);
+
+    public Task<(IEnumerable<Core.DTOs.Notification.FrozenTimesheetDto>? Data, string? Error)> GetManagerFrozenTimesheetsAsync() =>
+        GetAsync<IEnumerable<Core.DTOs.Notification.FrozenTimesheetDto>>(ApiRoutes.ManagerFrozenTimesheets);
+
+    public Task<(object? Data, string? Error)> RestoreTimesheetAccessAsync(RestoreTimesheetAccessDto dto) =>
+        PostAsync<RestoreTimesheetAccessDto, object>(ApiRoutes.ManagerRestoreTimesheetAccess, dto);
 
     public Task<(EmployeeReminderDto? Data, string? Error)> GetEmployeeReminderAsync() =>
         GetAsync<EmployeeReminderDto>(ApiRoutes.EmployeeReminder);

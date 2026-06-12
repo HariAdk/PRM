@@ -12,7 +12,9 @@ using ProjectManagementSystem.Hosting;
 using ProjectManagementSystem.Infrastructure.AI;
 using ProjectManagementSystem.Infrastructure.Data;
 using ProjectManagementSystem.Infrastructure.Mapping;
+using ProjectManagementSystem.Infrastructure.Email;
 using ProjectManagementSystem.Infrastructure.Repositories;
+using ProjectManagementSystem.Core.Interfaces.Services;
 using ProjectManagementSystem.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +22,14 @@ var builder = WebApplication.CreateBuilder(args);
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtSettings>(jwtSection);
 var jwtSettings = jwtSection.Get<JwtSettings>()!;
+
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Email:Smtp"));
+var emailProvider = builder.Configuration.GetValue<string>("Email:Provider") ?? "Smtp";
+if (emailProvider.Equals("Mock", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddScoped<IEmailService, MockEmailService>();
+else
+    builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -36,6 +46,17 @@ builder.Services.AddHttpClient(HttpClientNames.Groq, client =>
     client.BaseAddress = new Uri(ExternalApiDefaults.GroqBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(ExternalApiDefaults.HttpTimeoutSeconds);
 });
+builder.Services.AddHttpClient(HttpClientNames.Ollama, client =>
+{
+    client.BaseAddress = new Uri(ExternalApiDefaults.OllamaBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(ExternalApiDefaults.OllamaHttpTimeoutSeconds);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    ConnectTimeout = TimeSpan.FromSeconds(ExternalApiDefaults.OllamaConnectTimeoutSeconds),
+    PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+    UseProxy = false
+});
 builder.Services.AddSingleton<IAiProviderFactory, AiProviderFactory>();
 
 
@@ -46,6 +67,7 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IAllocationRepository, AllocationRepository>();
 builder.Services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
 builder.Services.AddScoped<ITimesheetRepository, TimesheetRepository>();
+builder.Services.AddScoped<ITimesheetReminderRepository, TimesheetReminderRepository>();
 
 builder.Services.AddApplicationServices();
 builder.Services.AddHostedService<SchedulerHostedService>();

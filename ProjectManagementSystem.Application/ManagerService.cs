@@ -1,6 +1,8 @@
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.DTOs.Allocation;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.Manager;
+using ProjectManagementSystem.Core.DTOs.Notification;
 using ProjectManagementSystem.Core.DTOs.Project;
 using ProjectManagementSystem.Core.DTOs.Timesheet;
 using ProjectManagementSystem.Core.Helpers;
@@ -16,6 +18,7 @@ public class ManagerService(
     ISkillRepository skillRepo,
     ITimesheetRepository timesheetRepo,
     ISystemConfigRepository configRepo,
+    ITimesheetReminderRepository reminderRepo,
     IAiService aiService) : IManagerService
 {
     public async Task<ResourceDashboardDto> GetResourceDashboardAsync(int managerUserId)
@@ -133,8 +136,11 @@ public class ManagerService(
         };
     }
 
-    public Task<AISkillMatchResultDto> GetAISkillMatchAsync(AISkillMatchRequestDto request, int managerUserId) =>
-        aiService.GetSkillMatchAsync(request, managerUserId);
+    public Task<AISkillMatchResultDto> GetAISkillMatchAsync(AISkillMatchRequestDto request) =>
+        aiService.GetSkillMatchAsync(request);
+
+    public Task<AITeamBuildResultDto> GetAITeamBuildAsync(AITeamBuildRequestDto request) =>
+        aiService.GetTeamBuildAsync(request);
 
     public Task<AIRiskSummaryResultDto> GetAIRiskSummaryAsync(AIRiskSummaryRequestDto request) =>
         aiService.GetRiskSummaryAsync(request);
@@ -264,6 +270,22 @@ public class ManagerService(
         }
 
         return riskFlags;
+    }
+
+    public Task<IReadOnlyList<FrozenTimesheetDto>> GetFrozenTimesheetsAsync(int managerUserId) =>
+        reminderRepo.GetFrozenForManagerTeamAsync(managerUserId);
+
+    public async Task RestoreTimesheetAccessAsync(int managerUserId, int employeeId, DateTime weekStart)
+    {
+        if (!await employeeRepo.IsOnManagerTeamAsync(managerUserId, employeeId))
+            throw new ForbiddenAppException(ErrorMessages.EmployeeNotOnTeam);
+
+        var weekMonday = WeekDateHelper.GetMondayOfWeek(weekStart);
+        var state = await reminderRepo.GetAsync(employeeId, DateOnly.FromDateTime(weekMonday));
+        if (state is null || !state.IsFrozen)
+            throw new BusinessRuleException(ErrorMessages.EmployeeNotFrozen);
+
+        await reminderRepo.RestoreAccessAsync(employeeId, DateOnly.FromDateTime(weekMonday), managerUserId);
     }
 
     private async Task<int> GetMaxWeeklyHoursAsync()

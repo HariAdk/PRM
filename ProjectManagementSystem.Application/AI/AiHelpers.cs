@@ -11,10 +11,11 @@ internal static class AiPromptBuilder
     public const string SkillMatchSystemPrompt =
         """
         You are a resource planning assistant for an IT services company.
-        Rank employees for a project requirement using ONLY the candidate data provided.
+        Rank employees from the entire organization for a project requirement using ONLY the candidate data provided.
         Hard rules:
-        - Only include employees whose listed skills or recent activity match the required technology/domain.
-        - Only include employees whose freeCapacity meets any availability % stated in the requirement.
+        - Only include employees whose listed skills (with proficiency levels) or recent activity match the requirement.
+        - Respect proficiency when stated (e.g. beginner, intermediate, advanced).
+        - Respect availability constraints: "min X% availability" means freeCapacity >= X; "max X% availability" means freeCapacity <= X.
         - If no candidate satisfies both, return {"matches":[]}.
         Respond with valid JSON only — no markdown fences, no extra text.
         JSON shape:
@@ -31,20 +32,18 @@ internal static class AiPromptBuilder
         """;
 
     public static string BuildSkillMatchUserPrompt(
-        string projectName,
         string requirement,
         IReadOnlyList<SkillMatchCandidateDto> candidates)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Project: {projectName}");
-        sb.AppendLine($"Manager requirement: {requirement}");
+        sb.AppendLine($"Requirement: {requirement}");
         sb.AppendLine();
-        sb.AppendLine("Candidates (already filtered for availability):");
+        sb.AppendLine("Organization candidates (already filtered for availability):");
         foreach (var c in candidates)
         {
             sb.AppendLine(
                 $"- employeeId={c.EmployeeId}, name={c.Name}, department={c.Department}, " +
-                $"skills=[{c.Skills}], freeCapacity={c.AvailabilityPercent}%, " +
+                $"skills=[{c.SkillsWithProficiency}], freeCapacity={c.AvailabilityPercent}%, " +
                 $"freeHoursPerWeek={c.FreeHoursPerWeek:0.#}, recentActivity=[{c.RecentActivity}]");
         }
 
@@ -126,7 +125,8 @@ internal static class AiResponseParser
         try
         {
             using var doc = JsonDocument.Parse(json);
-            if (!doc.RootElement.TryGetProperty("matches", out var matchesElement))
+            if (!TryGetProperty(doc.RootElement, "matches", out var matchesElement) ||
+                matchesElement.ValueKind != JsonValueKind.Array)
                 return [];
 
             var candidateMap = candidates.ToDictionary(c => c.EmployeeId);
@@ -134,25 +134,26 @@ internal static class AiResponseParser
 
             foreach (var item in matchesElement.EnumerateArray())
             {
-                if (!item.TryGetProperty("employeeId", out var idElement))
+                if (!TryGetEmployeeId(item, out var employeeId))
                     continue;
 
-                var employeeId = idElement.GetInt32();
                 if (!candidateMap.TryGetValue(employeeId, out var candidate))
                     continue;
 
-                var reason = item.TryGetProperty("reason", out var reasonElement)
+                var reason = TryGetProperty(item, "reason", out var reasonElement)
                     ? reasonElement.GetString()?.Trim() ?? string.Empty
                     : string.Empty;
 
                 if (string.IsNullOrWhiteSpace(reason))
-                    continue;
+                    reason = $"{candidate.Name} is a strong match based on skills and availability.";
 
                 results.Add(new AIMatchedEmployeeDto
                 {
                     EmployeeId = candidate.EmployeeId,
                     Name = candidate.Name,
-                    SkillsMatch = candidate.Skills,
+                    SkillsMatch = string.IsNullOrWhiteSpace(candidate.SkillsWithProficiency)
+                        ? candidate.Skills
+                        : candidate.SkillsWithProficiency,
                     AvailabilityPercentage = candidate.AvailabilityPercent,
                     RecentActivity = candidate.RecentActivity,
                     Reason = reason
@@ -165,6 +166,42 @@ internal static class AiResponseParser
         {
             return [];
         }
+    }
+
+    private static bool TryGetEmployeeId(JsonElement item, out int employeeId)
+    {
+        employeeId = 0;
+        if (!TryGetProperty(item, "employeeId", out var idElement) &&
+            !TryGetProperty(item, "employee_id", out idElement))
+            return false;
+
+        switch (idElement.ValueKind)
+        {
+            case JsonValueKind.Number when idElement.TryGetInt32(out employeeId):
+                return true;
+            case JsonValueKind.String:
+                return int.TryParse(idElement.GetString(), out employeeId);
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryGetProperty(JsonElement element, string name, out JsonElement value)
+    {
+        if (element.TryGetProperty(name, out value))
+            return true;
+
+        foreach (var prop in element.EnumerateObject())
+        {
+            if (prop.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                value = prop.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
     }
 
     public static List<AIMatchedEmployeeDto> ValidateSkillMatches(
@@ -207,7 +244,8 @@ internal static class AiFallbackMatcher
 {
     public static AISkillMatchResultDto BuildSkillMatch(
         IReadOnlyList<SkillMatchCandidateDto> candidates,
-        string requirement)
+        string requirement,
+        string? fallbackReason = null)
     {
         var matches = candidates
             .Where(c => SkillRequirementMatcher.MeetsRequirement(requirement, c))
@@ -225,16 +263,24 @@ internal static class AiFallbackMatcher
             {
                 EmployeeId = x.Candidate.EmployeeId,
                 Name = x.Candidate.Name,
-                SkillsMatch = x.Candidate.Skills,
+                SkillsMatch = string.IsNullOrWhiteSpace(x.Candidate.SkillsWithProficiency)
+                    ? x.Candidate.Skills
+                    : x.Candidate.SkillsWithProficiency,
                 AvailabilityPercentage = x.Candidate.AvailabilityPercent,
                 RecentActivity = x.Candidate.RecentActivity,
                 Reason =
-                    $"{x.Candidate.Name} matches your requirement based on skills/activity " +
-                    $"({x.Candidate.Skills}) with {x.Candidate.AvailabilityPercent}% availability."
+                    $"{x.Candidate.Name} matches based on skills/activity " +
+                    $"({(string.IsNullOrWhiteSpace(x.Candidate.SkillsWithProficiency) ? x.Candidate.Skills : x.Candidate.SkillsWithProficiency)}) " +
+                    $"with {x.Candidate.AvailabilityPercent}% free capacity."
             })
             .ToList();
 
-        return new AISkillMatchResultDto { Matches = matches, UsedFallback = true };
+        return new AISkillMatchResultDto
+        {
+            Matches = matches,
+            UsedFallback = true,
+            FallbackReason = fallbackReason
+        };
     }
 
     public static AIRiskSummaryResultDto BuildRiskSummary(RiskSummaryContext context)

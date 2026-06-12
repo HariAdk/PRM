@@ -23,4 +23,5 @@ public static class SuccessMessages
     public const string AllocationCreated = "Allocation created successfully.";
     public const string AllocationEnded = "Allocation ended successfully.";
     public const string TimesheetSubmitted = "Timesheet submitted successfully.";
+    public const string TimesheetAccessRestored = "Timesheet submission access restored for the employee.";
 }

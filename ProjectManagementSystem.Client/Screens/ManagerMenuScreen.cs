@@ -21,6 +21,7 @@ public class ManagerMenuScreen(ApiClient api, SessionContext session, IScreenFac
             ConsoleUI.Menu((int)ManagerMenuAction.AllocateResource, "Allocate Resource");
             ConsoleUI.Menu((int)ManagerMenuAction.MyProjects, "My Projects");
             ConsoleUI.Menu((int)ManagerMenuAction.Timesheets, "Timesheets");
+            ConsoleUI.Menu((int)ManagerMenuAction.RestoreTimesheetAccess, "Restore Timesheet Access");
             ConsoleUI.Menu((int)ManagerMenuAction.AiAssistant, "AI Assistant");
             ConsoleUI.Menu((int)ManagerMenuAction.Logout, "Logout");
 

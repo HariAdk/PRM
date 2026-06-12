@@ -9,11 +9,11 @@ using ProjectManagementSystem.Infrastructure.Data;
 
 #nullable disable
 
-namespace ProjectManagementSystem.Infrastructure.Data.Migrations
+namespace ProjectManagementSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260601051750_first")]
-    partial class first
+    [Migration("20260611125533_InitialResourcesSchema")]
+    partial class InitialResourcesSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,9 +33,6 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("EmployeeId")
-                        .HasColumnType("int");
-
                     b.Property<DateOnly>("FromDate")
                         .HasColumnType("date");
 
@@ -47,6 +44,9 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("int");
+
                     b.Property<DateOnly>("ToDate")
                         .HasColumnType("date");
 
@@ -55,89 +55,11 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EmployeeId");
-
                     b.HasIndex("ProjectId");
 
+                    b.HasIndex("ResourceId");
+
                     b.ToTable("Allocations", (string)null);
-                });
-
-            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Employee", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Department")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Designation")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("Employees", (string)null);
-                });
-
-            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.EmployeeSkill", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("EmployeeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ProficiencyLevel")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("SkillId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SkillId");
-
-                    b.HasIndex("EmployeeId", "SkillId")
-                        .IsUnique();
-
-                    b.ToTable("EmployeeSkills", (string)null);
                 });
 
             modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Milestone", b =>
@@ -158,6 +80,9 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("StoryPoints")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -208,11 +133,110 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int>("TotalStoryPoints")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ManagerId");
 
                     b.ToTable("Projects", (string)null);
+                });
+
+            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Resource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReportingManagerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportingManagerId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Resources", (string)null);
+                });
+
+            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.ResourceSkill", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ProficiencyLevel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SkillId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SkillId");
+
+                    b.HasIndex("ResourceId", "SkillId")
+                        .IsUnique();
+
+                    b.ToTable("ResourceSkills", (string)null);
+                });
+
+            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Skill", b =>
@@ -282,7 +306,7 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("EmployeeId")
+                    b.Property<int>("ResourceId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -301,7 +325,7 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EmployeeId", "WeekStartDate")
+                    b.HasIndex("ResourceId", "WeekStartDate")
                         .IsUnique();
 
                     b.ToTable("Timesheets", (string)null);
@@ -347,19 +371,17 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Designation")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
-
-                    b.Property<bool>("ForcePasswordChange")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
 
                     b.Property<string>("FullName")
                         .IsRequired()
@@ -371,15 +393,21 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsForcePasswordChange")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -391,6 +419,8 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("RoleId");
+
                     b.HasIndex("Username")
                         .IsUnique();
 
@@ -399,51 +429,21 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Allocation", b =>
                 {
-                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.Employee", "Employee")
-                        .WithMany("Allocations")
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("ProjectManagementSystem.Infrastructure.Models.Project", "Project")
                         .WithMany("Allocations")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Employee");
+                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.Resource", "Resource")
+                        .WithMany("Allocations")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Project");
-                });
 
-            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Employee", b =>
-                {
-                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.User", "User")
-                        .WithOne("Employee")
-                        .HasForeignKey("ProjectManagementSystem.Infrastructure.Models.Employee", "UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.EmployeeSkill", b =>
-                {
-                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.Employee", "Employee")
-                        .WithMany("Skills")
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.Skill", "Skill")
-                        .WithMany("EmployeeSkills")
-                        .HasForeignKey("SkillId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("Skill");
+                    b.Navigation("Resource");
                 });
 
             modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Milestone", b =>
@@ -468,15 +468,52 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
                     b.Navigation("Manager");
                 });
 
-            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Timesheet", b =>
+            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Resource", b =>
                 {
-                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.Employee", "Employee")
-                        .WithMany("Timesheets")
-                        .HasForeignKey("EmployeeId")
+                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.User", "ReportingManager")
+                        .WithMany("DirectReports")
+                        .HasForeignKey("ReportingManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.User", "User")
+                        .WithOne("Resource")
+                        .HasForeignKey("ProjectManagementSystem.Infrastructure.Models.Resource", "UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Employee");
+                    b.Navigation("ReportingManager");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.ResourceSkill", b =>
+                {
+                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.Resource", "Resource")
+                        .WithMany("Skills")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.Skill", "Skill")
+                        .WithMany("ResourceSkills")
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+
+                    b.Navigation("Skill");
+                });
+
+            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Timesheet", b =>
+                {
+                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.Resource", "Resource")
+                        .WithMany("Timesheets")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
                 });
 
             modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.TimesheetEntry", b =>
@@ -498,13 +535,15 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
                     b.Navigation("Timesheet");
                 });
 
-            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Employee", b =>
+            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.User", b =>
                 {
-                    b.Navigation("Allocations");
+                    b.HasOne("ProjectManagementSystem.Infrastructure.Models.Role", "Role")
+                        .WithMany("Users")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.Navigation("Skills");
-
-                    b.Navigation("Timesheets");
+                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Project", b =>
@@ -516,9 +555,23 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
                     b.Navigation("TimesheetEntries");
                 });
 
+            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Resource", b =>
+                {
+                    b.Navigation("Allocations");
+
+                    b.Navigation("Skills");
+
+                    b.Navigation("Timesheets");
+                });
+
+            modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Role", b =>
+                {
+                    b.Navigation("Users");
+                });
+
             modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Skill", b =>
                 {
-                    b.Navigation("EmployeeSkills");
+                    b.Navigation("ResourceSkills");
                 });
 
             modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.Timesheet", b =>
@@ -528,9 +581,11 @@ namespace ProjectManagementSystem.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("ProjectManagementSystem.Infrastructure.Models.User", b =>
                 {
-                    b.Navigation("Employee");
+                    b.Navigation("DirectReports");
 
                     b.Navigation("ManagedProjects");
+
+                    b.Navigation("Resource");
                 });
 #pragma warning restore 612, 618
         }

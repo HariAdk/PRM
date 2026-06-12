@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Helpers;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
@@ -11,6 +12,7 @@ public class SchedulerService(
     IAllocationRepository allocationRepo,
     IProjectRepository projectRepo,
     ITimesheetRepository timesheetRepo,
+    INotificationService notificationService,
     ILogger<SchedulerService> logger) : ISchedulerService
 {
     public async Task RunScheduledTasksAsync(CancellationToken cancellationToken = default)
@@ -19,6 +21,8 @@ public class SchedulerService(
 
         await RecomputeEmployeeStatusesAsync(cancellationToken);
         await UpdateProjectHealthAsync(cancellationToken);
+        await notificationService.ProcessTimesheetEscalationsAsync(cancellationToken);
+        await notificationService.ProcessAtRiskProjectNotificationsAsync(cancellationToken);
         await MarkMissedTimesheetsAsync(cancellationToken);
 
         logger.LogInformation("Scheduler run completed at {Time}", DateTimeOffset.UtcNow);
@@ -88,6 +92,11 @@ public class SchedulerService(
         var lastWeekMonday = WeekDateHelper.GetLastCompletedWeekMonday(DateTime.Today);
         var lastWeekSunday = DateOnly.FromDateTime(lastWeekMonday.AddDays(6));
         var weekStart = DateOnly.FromDateTime(lastWeekMonday);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var workingDays = WorkingDayHelper.CountWorkingDaysSinceWeekEnd(lastWeekSunday, today);
+
+        if (workingDays <= SystemDefaults.TimesheetReminderDays)
+            return;
 
         var employeeIds = (await allocationRepo.GetEmployeeIdsAllocatedBetweenAsync(
             weekStart, lastWeekSunday)).ToList();

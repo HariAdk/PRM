@@ -51,11 +51,17 @@ public static class ErrorMessages
     public const string DuplicateTimesheetProject = "Duplicate project entries are not allowed in one timesheet.";
     public const string NegativeHours = "Hours cannot be negative.";
     public const string ActivityTagRequired = "At least one activity tag is required for entries with hours.";
+    public const string TimesheetSubmissionFrozen =
+        "Timesheet submission is frozen. Contact your reporting manager to restore access.";
+    public const string EmployeeNotFrozen = "This employee does not have a frozen timesheet for the selected week.";
 
     // System & AI
     public const string SystemConfigNotFound = "System configuration not found.";
     public const string SystemConfigMissing = "SystemConfig not found.";
-    public const string LlmNotConfigured = "LLM is not configured. Add an API key in System Configuration.";
+    public const string LlmNotConfigured =
+        "LLM is not configured. Set the provider and API key in System Configuration (Ollama uses the apikey header value).";
+    public const string SkillMatchRequirementRequired = "A requirement description is required for skill match.";
+    public const string TeamBuildRequirementRequired = "A team requirement description is required for team building.";
     public const string UnexpectedError = "An unexpected error occurred. Please try again later.";
 
     // Entity not-found helpers (include id in message for API clients)
@@ -86,6 +92,9 @@ public static class ErrorMessages
         $"Invalid activity tag '{tag}'. Choose from the predefined list.";
     public static string GeminiApiError(int statusCode) => $"Gemini API returned {statusCode}.";
     public static string GroqApiError(int statusCode) => $"Groq API returned {statusCode}.";
+    public static string OllamaApiError(int statusCode) => $"Ollama API returned {statusCode}.";
     public const string GeminiEmptyResponse = "Gemini API returned an empty response.";
     public const string GroqEmptyResponse = "Groq API returned an empty response.";
+    public const string OllamaEmptyResponse = "Ollama API returned an empty response.";
+    public const string LlmProviderNotSupported = "The selected LLM provider is not supported.";
 }

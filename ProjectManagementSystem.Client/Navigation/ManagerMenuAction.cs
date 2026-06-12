@@ -6,6 +6,7 @@ public enum ManagerMenuAction
     AllocateResource = 2,
     MyProjects = 3,
     Timesheets = 4,
-    AiAssistant = 5,
-    Logout = 6
+    RestoreTimesheetAccess = 5,
+    AiAssistant = 6,
+    Logout = 7
 }

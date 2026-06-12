@@ -19,11 +19,15 @@ public class ConfigController(ISystemConfigService configService) : ControllerBa
         var masked = new SystemConfigDto
         {
             LlmProvider = config.LlmProvider,
-            LlmApiKey = string.IsNullOrEmpty(config.LlmApiKey)
-                ? ConfigDisplayDefaults.ApiKeyNotSetLabel
-                : new string('*', ConfigDisplayDefaults.MaskedApiKeyLength),
+            LlmApiKey = ConfigDisplayDefaults.MaskSecret(config.LlmApiKey),
             SchedulerIntervalHours = config.SchedulerIntervalHours,
-            MaxWeeklyHours = config.MaxWeeklyHours
+            MaxWeeklyHours = config.MaxWeeklyHours,
+            EmailEnabled = config.EmailEnabled,
+            SmtpHost = config.SmtpHost,
+            SmtpPort = config.SmtpPort,
+            SmtpUsername = config.SmtpUsername,
+            SmtpPassword = ConfigDisplayDefaults.MaskSecret(config.SmtpPassword),
+            EmailFromAddress = config.EmailFromAddress
         };
         return Ok(ApiResponse<SystemConfigDto>.Ok(masked));
     }

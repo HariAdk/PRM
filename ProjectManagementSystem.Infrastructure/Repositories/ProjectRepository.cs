@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.Exceptions;
+using ProjectManagementSystem.Core.DTOs.Notification;
 using ProjectManagementSystem.Core.DTOs.Project;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
@@ -39,6 +40,41 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
         var project = await db.Projects.FindAsync(projectId)
                       ?? throw new NotFoundException(ErrorMessages.ProjectNotFoundById(projectId));
         project.HealthStatus = health;
+        if (health != ProjectHealth.AtRisk)
+            project.AtRiskNotifiedAt = null;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<IReadOnlyList<AtRiskProjectEmailDto>> GetAtRiskProjectsPendingNotificationAsync()
+    {
+        var projects = await db.Projects
+            .Include(p => p.Manager)
+            .Include(p => p.Milestones)
+            .Where(p => p.Status == ProjectStatus.Active &&
+                        p.HealthStatus == ProjectHealth.AtRisk &&
+                        p.AtRiskNotifiedAt == null)
+            .ToListAsync();
+
+        return projects.Select(p => new AtRiskProjectEmailDto
+        {
+            ProjectId = p.Id,
+            ProjectName = p.Name,
+            ManagerName = p.Manager.FullName,
+            ManagerEmail = p.Manager.Email,
+            HealthStatus = nameof(ProjectHealth.AtRisk),
+            MilestoneSummary = string.Join("; ",
+                p.Milestones
+                    .OrderBy(m => m.DueDate)
+                    .Take(5)
+                    .Select(m => $"{m.Title} ({m.Status}, due {m.DueDate:dd-MMM-yyyy})"))
+        }).ToList();
+    }
+
+    public async Task MarkAtRiskNotifiedAsync(int projectId)
+    {
+        var project = await db.Projects.FindAsync(projectId)
+                      ?? throw new NotFoundException(ErrorMessages.ProjectNotFoundById(projectId));
+        project.AtRiskNotifiedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
     }
 
@@ -90,5 +126,7 @@ public class ProjectRepository(AppDbContext db, IMapper mapper) : IProjectReposi
     }
 
     public async Task<bool> ManagerExistsAsync(int managerId) =>
-        await db.Users.AnyAsync(u => u.Id == managerId && u.Role == UserRole.Manager && u.IsActive);
+        await db.Users
+            .Include(u => u.Role)
+            .AnyAsync(u => u.Id == managerId && u.Role.Name == RoleNames.Manager && u.IsActive);
 }

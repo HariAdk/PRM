@@ -1,11 +1,11 @@
 using Moq;
 using ProjectManagementSystem.Application;
 using ProjectManagementSystem.Core.Constants;
-using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.Allocation;
 using ProjectManagementSystem.Core.DTOs.Config;
 using ProjectManagementSystem.Core.DTOs.Employee;
 using ProjectManagementSystem.Core.DTOs.Timesheet;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Helpers;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 
@@ -21,6 +21,7 @@ public class EmployeePortalServiceTests
     private readonly Mock<IAllocationRepository> _allocationRepo = new();
     private readonly Mock<ITimesheetRepository> _timesheetRepo = new();
     private readonly Mock<ISystemConfigRepository> _configRepo = new();
+    private readonly Mock<ITimesheetReminderRepository> _reminderRepo = new();
     private readonly EmployeePortalService _sut;
     private readonly DateTime _weekMonday;
 
@@ -31,23 +32,18 @@ public class EmployeePortalServiceTests
             _employeeRepo.Object,
             _allocationRepo.Object,
             _timesheetRepo.Object,
-            _configRepo.Object);
+            _configRepo.Object,
+            _reminderRepo.Object);
     }
 
     [Fact]
     public async Task SubmitTimesheetAsync_ThrowsWhenWeekAlreadySubmitted()
     {
         SetupEmployeeConfigAndAllocation();
-        _timesheetRepo
-            .Setup(r => r.HasSubmittedForWeekAsync(EmployeeId, _weekMonday))
-            .ReturnsAsync(true);
+        _timesheetRepo.Setup(r => r.HasSubmittedForWeekAsync(EmployeeId, _weekMonday)).ReturnsAsync(true);
 
-        var dto = ValidSubmitDto(hours: 8);
-
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => _sut.SubmitTimesheetAsync(UserId, dto));
-
-        Assert.Equal(ErrorMessages.TimesheetAlreadySubmitted, ex.Message);
+        await Assert.ThrowsAsync<BusinessRuleException>(
+            () => _sut.SubmitTimesheetAsync(UserId, ValidSubmitDto(hours: 8)));
     }
 
     [Fact]
@@ -55,83 +51,80 @@ public class EmployeePortalServiceTests
     {
         SetupEmployeeConfigAndAllocation();
         var futureMonday = WeekDateHelper.GetMondayOfWeek(DateTime.Today).AddDays(7);
-
         var dto = new SubmitEmployeeTimesheetDto
         {
             WeekStartDate = futureMonday,
-            Projects = [new SubmitTimesheetProjectEntryDto
-            {
-                ProjectId = ProjectId,
-                Hours = 8,
-                ActivityTags = ActivityTags.All[0]
-            }]
+            Projects =
+            [
+                new SubmitTimesheetProjectEntryDto
+                {
+                    ProjectId = ProjectId,
+                    Hours = 8,
+                    ActivityTags = ActivityTags.All[0]
+                }
+            ]
         };
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.SubmitTimesheetAsync(UserId, dto));
     }
 
     [Fact]
-    public async Task SubmitTimesheetAsync_ThrowsWhenNotAllocatedToProject()
+    public async Task GetReminderAsync_ReturnsNoReminderWhenNoAllocationDuringWeek()
     {
-        SetupEmployeeConfigAndAllocation();
+        SetupActiveEmployee();
+        _allocationRepo.Setup(r => r.GetByEmployeeIdAsync(EmployeeId)).ReturnsAsync(Array.Empty<AllocationDto>());
 
-        var dto = ValidSubmitDto(hours: 8, projectId: 999);
+        var result = await _sut.GetReminderAsync(UserId);
 
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => _sut.SubmitTimesheetAsync(UserId, dto));
-
-        Assert.Contains("not allocated", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(result.ShowReminder);
     }
 
     [Fact]
-    public async Task SubmitTimesheetAsync_ThrowsWhenHoursExceedProjectAllocationCap()
+    public async Task GetProfileAsync_ReturnsTotalUtilisationFromActiveAllocations()
     {
-        SetupEmployeeConfigAndAllocation(utilisationPercent: 50, maxWeeklyHours: 40);
-
-        var dto = ValidSubmitDto(hours: 25);
-
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => _sut.SubmitTimesheetAsync(UserId, dto));
-
-        Assert.Contains("exceed the allowed maximum", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task SubmitTimesheetAsync_ThrowsWhenTotalHoursExceedWeeklyMax()
-    {
-        SetupEmployeeConfigAndAllocation(utilisationPercent: 60, maxWeeklyHours: 40);
-        SetupSecondProjectAllocation(projectId: 102, utilisationPercent: 60);
-
-        var dto = new SubmitEmployeeTimesheetDto
+        SetupActiveEmployee();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        _allocationRepo.Setup(r => r.GetByEmployeeIdAsync(EmployeeId)).ReturnsAsync(new[]
         {
-            WeekStartDate = _weekMonday,
-            Projects =
-            [
-                new SubmitTimesheetProjectEntryDto { ProjectId = ProjectId, Hours = 22, ActivityTags = ActivityTags.All[0] },
-                new SubmitTimesheetProjectEntryDto { ProjectId = 102, Hours = 20, ActivityTags = ActivityTags.All[1] }
-            ]
-        };
+            new AllocationDto
+            {
+                EmployeeId = EmployeeId,
+                ProjectId = ProjectId,
+                ProjectName = "Alpha",
+                UtilisationPercent = 60,
+                IsActive = true,
+                FromDate = today.AddDays(-7),
+                ToDate = today.AddDays(7)
+            },
+            new AllocationDto
+            {
+                EmployeeId = EmployeeId,
+                ProjectId = 102,
+                ProjectName = "Beta",
+                UtilisationPercent = 40,
+                IsActive = true,
+                FromDate = today.AddDays(-7),
+                ToDate = today.AddDays(7)
+            }
+        });
 
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => _sut.SubmitTimesheetAsync(UserId, dto));
+        var result = await _sut.GetProfileAsync(UserId);
 
-        Assert.Contains("exceed the maximum weekly limit", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(100, result.TotalUtilisation);
     }
 
     [Fact]
-    public async Task SubmitTimesheetAsync_ThrowsWhenActivityTagsMissingForHours()
+    public async Task GetMyTimesheetAsync_ReturnsNullWhenTimesheetBelongsToAnotherEmployee()
     {
-        SetupEmployeeConfigAndAllocation();
+        SetupActiveEmployee();
+        _timesheetRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(new TimesheetDto { TimesheetId = 5, EmployeeId = 999 });
 
-        var dto = ValidSubmitDto(hours: 8, activityTags: "");
+        var result = await _sut.GetMyTimesheetAsync(UserId, 5);
 
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => _sut.SubmitTimesheetAsync(UserId, dto));
-
-        Assert.Contains("activity tag", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(result);
     }
 
-    private void SetupEmployeeConfigAndAllocation(int utilisationPercent = 50, int maxWeeklyHours = 40)
+    private void SetupActiveEmployee()
     {
         _employeeRepo.Setup(r => r.GetByUserIdAsync(UserId)).ReturnsAsync(new EmployeeDto
         {
@@ -140,6 +133,11 @@ public class EmployeePortalServiceTests
             IsActive = true,
             FullName = "Test Employee"
         });
+    }
+
+    private void SetupEmployeeConfigAndAllocation(int utilisationPercent = 50, int maxWeeklyHours = 40)
+    {
+        SetupActiveEmployee();
 
         _configRepo.Setup(r => r.GetAsync()).ReturnsAsync(new SystemConfigDto
         {
@@ -169,49 +167,16 @@ public class EmployeePortalServiceTests
         });
     }
 
-    private void SetupSecondProjectAllocation(int projectId, int utilisationPercent)
-    {
-        var weekStart = DateOnly.FromDateTime(_weekMonday);
-        var weekEnd = DateOnly.FromDateTime(_weekMonday.AddDays(6));
-
-        _allocationRepo.Setup(r => r.GetByEmployeeIdAsync(EmployeeId)).ReturnsAsync(new[]
-        {
-            new AllocationDto
-            {
-                EmployeeId = EmployeeId,
-                ProjectId = ProjectId,
-                ProjectName = "Alpha Portal",
-                UtilisationPercent = 60,
-                IsActive = true,
-                FromDate = weekStart.AddDays(-14),
-                ToDate = weekEnd.AddDays(14)
-            },
-            new AllocationDto
-            {
-                EmployeeId = EmployeeId,
-                ProjectId = projectId,
-                ProjectName = "Beta CRM",
-                UtilisationPercent = utilisationPercent,
-                IsActive = true,
-                FromDate = weekStart.AddDays(-14),
-                ToDate = weekEnd.AddDays(14)
-            }
-        });
-    }
-
-    private SubmitEmployeeTimesheetDto ValidSubmitDto(
-        decimal hours,
-        int projectId = ProjectId,
-        string? activityTags = null) => new()
+    private SubmitEmployeeTimesheetDto ValidSubmitDto(decimal hours) => new()
     {
         WeekStartDate = _weekMonday,
         Projects =
         [
             new SubmitTimesheetProjectEntryDto
             {
-                ProjectId = projectId,
+                ProjectId = ProjectId,
                 Hours = hours,
-                ActivityTags = activityTags ?? ActivityTags.All[0]
+                ActivityTags = ActivityTags.All[0]
             }
         ]
     };

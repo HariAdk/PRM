@@ -6,7 +6,6 @@ using ProjectManagementSystem.Core.Constants;
 
 namespace ProjectManagementSystem.Client.Screens;
 
-/// <summary>Screen 5 — Employee Menu</summary>
 public class EmployeeMenuScreen(ApiClient api, SessionContext session, IScreenFactory screenFactory) : IScreen
 {
     public async Task ShowAsync()
@@ -46,7 +45,15 @@ public class EmployeeMenuScreen(ApiClient api, SessionContext session, IScreenFa
     private async Task ShowReminderAsync()
     {
         var (reminder, error) = await api.GetEmployeeReminderAsync();
-        if (error is not null || reminder is null || !reminder.ShowReminder) return;
-        ConsoleUI.Warning(reminder.Message);
+        if (error is not null || reminder is null) return;
+
+        if (reminder.IsFrozen)
+        {
+            ConsoleUI.Error(reminder.Message);
+            return;
+        }
+
+        if (reminder.ShowReminder)
+            ConsoleUI.Warning(reminder.Message);
     }
 }

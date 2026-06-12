@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<ITimesheetService, TimesheetService>();
         services.AddScoped<IEmployeePortalService, EmployeePortalService>();
         services.AddScoped<ISchedulerService, SchedulerService>();
+        services.AddScoped<INotificationService, NotificationService>();
 
         return services;
     }

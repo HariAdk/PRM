@@ -63,7 +63,7 @@ public class ManageEmployeesScreen(ApiClient api, IScreenFactory screenFactory) 
         Console.WriteLine($"Total: {list.Count}   |   Allocated: {allocated}   |   Bench: {bench}" +
                           (managers > 0 ? $"   |   Managers (N/A): {managers}" : string.Empty));
         ConsoleUI.BlankLine();
-        ConsoleUI.ActionBar("[F] Filter by Status / Department", "[B] Back");
+        ConsoleUI.ActionBar("[F] Filter by Status", "[B] Back");
 
         var opt = ConsoleUI.PromptOption();
         if (opt.ToUpper() == "F") await FilterEmployeesAsync(list);
@@ -74,8 +74,7 @@ public class ManageEmployeesScreen(ApiClient api, IScreenFactory screenFactory) 
         Console.Clear();
         ConsoleUI.DrawBox("FILTER EMPLOYEES");
         ConsoleUI.Menu(1, "Filter by Status (Bench / Allocated)");
-        ConsoleUI.Menu(2, "Filter by Department");
-        ConsoleUI.Menu(3, "Back");
+        ConsoleUI.Menu(2, "Back");
         var opt = ConsoleUI.PromptOption();
 
         IEnumerable<EmployeeDto> filtered = list;
@@ -85,11 +84,6 @@ public class ManageEmployeesScreen(ApiClient api, IScreenFactory screenFactory) 
             filtered = list.Where(e =>
                 e.IsAllocatableResource &&
                 e.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
-        }
-        else if (opt == "2")
-        {
-            var dept = ConsoleUI.Prompt("Department");
-            filtered = list.Where(e => e.Department.Contains(dept, StringComparison.OrdinalIgnoreCase));
         }
         else return;
 
@@ -103,13 +97,12 @@ public class ManageEmployeesScreen(ApiClient api, IScreenFactory screenFactory) 
     private static void RenderEmployeeTable(IEnumerable<EmployeeDto> employees)
     {
         ConsoleUI.RenderTable(
-            ["ID", "Name", "Role", "Department", "Status"],
+            ["ID", "Name", "Role", "Status"],
             employees.Select(e => new[]
             {
                 e.Id.ToString(),
                 e.FullName,
                 ConsoleUI.StatusUpper(e.UserRole),
-                e.Department,
                 EmployeeAvailabilityLabels.ProfileStatus(e.UserRole, e.Status)
             }),
             rightAlignColumnIndexes: [0]);
@@ -130,19 +123,17 @@ public class ManageEmployeesScreen(ApiClient api, IScreenFactory screenFactory) 
         }
 
         ConsoleUI.BlankLine();
-        Console.WriteLine($"Current: {emp!.FullName} | {emp.Department} | {emp.Designation}");
+        Console.WriteLine($"Current: {emp!.FullName} | {emp.Designation}");
         ConsoleUI.Divider();
 
         var fullName    = ConsoleUI.Prompt("Full Name    (Enter to keep current)");
         var email       = ConsoleUI.Prompt("Email        (Enter to keep current)");
-        var department  = ConsoleUI.Prompt("Department   (Enter to keep current)");
         var designation = ConsoleUI.Prompt("Designation  (Enter to keep current)");
 
         var dto = new UpdateEmployeeDto
         {
             FullName    = string.IsNullOrEmpty(fullName)    ? emp.FullName    : fullName,
             Email       = string.IsNullOrEmpty(email)       ? emp.Email       : email,
-            Department  = string.IsNullOrEmpty(department)  ? emp.Department  : department,
             Designation = string.IsNullOrEmpty(designation) ? emp.Designation : designation
         };
 
@@ -175,7 +166,6 @@ public class ManageEmployeesScreen(ApiClient api, IScreenFactory screenFactory) 
 
         ConsoleUI.BlankLine();
         ConsoleUI.SubHeader(emp!.FullName);
-        Console.WriteLine($"Department : {emp.Department}");
         Console.WriteLine($"Status     : {ConsoleUI.StatusUpper(emp.Status)}");
         ConsoleUI.BlankLine();
         ConsoleUI.Warning("This will: set is_active = false, end all active allocations today, and block their login account.");

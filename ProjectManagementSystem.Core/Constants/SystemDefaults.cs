@@ -7,4 +7,6 @@ public static class SystemDefaults
     public const int MinSchedulerIntervalHours = 1;
     public const string UnassignedDepartment = "Unassigned";
     public const string UnassignedDesignation = "Unassigned";
+    public const int SmtpPort = 587;
+    public const int TimesheetReminderDays = 2;
 }

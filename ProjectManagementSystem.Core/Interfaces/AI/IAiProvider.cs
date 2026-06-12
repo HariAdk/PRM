@@ -7,5 +7,6 @@ public interface IAiProvider
     Task<string> CompleteAsync(
         string systemPrompt,
         string userPrompt,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool jsonResponse = false);
 }

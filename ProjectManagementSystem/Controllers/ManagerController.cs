@@ -141,13 +141,36 @@ public class ManagerController(
     [HttpPost("ai/skill-match")]
     public async Task<IActionResult> AISkillMatch([FromBody] AISkillMatchRequestDto request)
     {
-        var project = await projectService.GetByIdAsync(request.ProjectId);
+        if (string.IsNullOrWhiteSpace(request.Requirement))
+            return BadRequest(ApiResponse<object>.Fail(ErrorMessages.SkillMatchRequirementRequired));
 
-        if (project.ManagerId != User.GetCurrentUserId())
-            return Forbid();
-
-        var result = await managerService.GetAISkillMatchAsync(request, User.GetCurrentUserId());
+        var result = await managerService.GetAISkillMatchAsync(request);
         return Ok(ApiResponse<AISkillMatchResultDto>.Ok(result));
+    }
+
+    [HttpPost("ai/team-build")]
+    public async Task<IActionResult> AITeamBuild([FromBody] AITeamBuildRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Requirement))
+            return BadRequest(ApiResponse<object>.Fail(ErrorMessages.TeamBuildRequirementRequired));
+
+        var result = await managerService.GetAITeamBuildAsync(request);
+        return Ok(ApiResponse<AITeamBuildResultDto>.Ok(result));
+    }
+
+    [HttpGet("timesheets/frozen")]
+    public async Task<IActionResult> GetFrozenTimesheets()
+    {
+        var frozen = await managerService.GetFrozenTimesheetsAsync(User.GetCurrentUserId());
+        return Ok(ApiResponse<IEnumerable<Core.DTOs.Notification.FrozenTimesheetDto>>.Ok(frozen));
+    }
+
+    [HttpPost("timesheets/restore-access")]
+    public async Task<IActionResult> RestoreTimesheetAccess([FromBody] RestoreTimesheetAccessDto dto)
+    {
+        await managerService.RestoreTimesheetAccessAsync(
+            User.GetCurrentUserId(), dto.EmployeeId, dto.WeekStartDate);
+        return Ok(ApiResponse<object>.Ok(null!, SuccessMessages.TimesheetAccessRestored));
     }
 
     [HttpPost("ai/risk-summary")]

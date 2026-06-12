@@ -12,164 +12,166 @@ namespace ProjectManagementSystem.Infrastructure.Repositories;
 
 public class EmployeeRepository(AppDbContext db, IMapper mapper) : IEmployeeRepository
 {
+    private IQueryable<Resource> ActiveResourcesQuery() =>
+        db.Resources
+            .Include(r => r.User).ThenInclude(u => u.Role)
+            .Include(r => r.ReportingManager)
+            .Where(r => r.User.IsActive);
+
     public async Task<EmployeeDto?> GetByIdAsync(int id)
     {
-        var e = await db.Employees.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == id);
-        return e is null ? null : mapper.Map<EmployeeDto>(e);
+        var resource = await ActiveResourcesQuery().FirstOrDefaultAsync(r => r.Id == id);
+        return resource is null ? null : mapper.Map<EmployeeDto>(resource);
     }
 
     public async Task<EmployeeDto?> GetByUserIdAsync(int userId)
     {
-        var e = await db.Employees
-            .Include(x => x.User)
-            .Include(x => x.ReportingManager)
-            .FirstOrDefaultAsync(x => x.UserId == userId);
-        return e is null ? null : mapper.Map<EmployeeDto>(e);
+        var resource = await ActiveResourcesQuery().FirstOrDefaultAsync(r => r.UserId == userId);
+        return resource is null ? null : mapper.Map<EmployeeDto>(resource);
     }
 
     public async Task<IEnumerable<EmployeeDto>> GetAllAsync()
     {
-        var list = await db.Employees
-            .Include(e => e.User)
-            .Include(e => e.ReportingManager)
-            .Where(e => e.IsActive)
-            .OrderBy(e => e.FullName)
-            .ToListAsync();
-
+        var list = await ActiveResourcesQuery().OrderBy(r => r.User.FullName).ToListAsync();
         return mapper.Map<IEnumerable<EmployeeDto>>(list);
     }
 
     public async Task<IEnumerable<EmployeeDto>> GetAllocatableResourcesAsync()
     {
-        var list = await db.Employees
-            .Include(e => e.User)
-            .Where(e => e.IsActive && e.User.Role == UserRole.Employee)
-            .OrderBy(e => e.FullName)
+        var employeeRoleId = await RoleResolver.GetEmployeeRoleIdAsync(db);
+        var list = await ActiveResourcesQuery()
+            .Where(r => r.User.RoleId == employeeRoleId)
+            .OrderBy(r => r.User.FullName)
             .ToListAsync();
-
         return mapper.Map<IEnumerable<EmployeeDto>>(list);
     }
 
     public async Task<bool> IsAllocatableResourceAsync(int employeeId) =>
-        await db.Employees
-            .Include(e => e.User)
-            .AnyAsync(e => e.Id == employeeId && e.IsActive && e.User.Role == UserRole.Employee);
+        await db.Resources
+            .Include(r => r.User).ThenInclude(u => u.Role)
+            .AnyAsync(r => r.Id == employeeId &&
+                           r.User.IsActive &&
+                           r.User.Role.Name == RoleNames.Employee);
 
     public async Task<IEnumerable<EmployeeDto>> GetTeamAllocatableResourcesAsync(int managerUserId)
     {
-        var list = await db.Employees
-            .Include(e => e.User)
-            .Where(e => e.IsActive &&
-                        e.User.Role == UserRole.Employee &&
-                        e.ManagerId == managerUserId)
-            .OrderBy(e => e.FullName)
+        var employeeRoleId = await RoleResolver.GetEmployeeRoleIdAsync(db);
+        var list = await ActiveResourcesQuery()
+            .Where(r => r.User.RoleId == employeeRoleId && r.ReportingManagerId == managerUserId)
+            .OrderBy(r => r.User.FullName)
             .ToListAsync();
-
         return mapper.Map<IEnumerable<EmployeeDto>>(list);
     }
 
     public async Task<bool> IsOnManagerTeamAsync(int managerUserId, int employeeId) =>
-        await db.Employees
-            .AnyAsync(e => e.Id == employeeId &&
-                           e.IsActive &&
-                           e.ManagerId == managerUserId);
+        await db.Resources
+            .Include(r => r.User)
+            .AnyAsync(r => r.Id == employeeId &&
+                           r.User.IsActive &&
+                           r.ReportingManagerId == managerUserId);
 
     public async Task<IEnumerable<int>> GetTeamEmployeeIdsAsync(int managerUserId) =>
-        await db.Employees
-            .Where(e => e.IsActive && e.ManagerId == managerUserId)
-            .Select(e => e.Id)
+        await db.Resources
+            .Where(r => r.User.IsActive && r.ReportingManagerId == managerUserId)
+            .Select(r => r.Id)
             .ToListAsync();
 
     public async Task<EmployeeDto> AssignManagerAsync(int employeeUserId, int managerUserId)
     {
-        var employee = await db.Employees
-            .Include(e => e.User)
-            .Include(e => e.ReportingManager)
-            .FirstOrDefaultAsync(e => e.UserId == employeeUserId)
+        var resource = await db.Resources
+            .Include(r => r.User).ThenInclude(u => u.Role)
+            .Include(r => r.ReportingManager)
+            .FirstOrDefaultAsync(r => r.UserId == employeeUserId)
             ?? throw new NotFoundException(ErrorMessages.EmployeeProfileNotFoundForUser(employeeUserId));
 
-        employee.ManagerId = managerUserId;
+        resource.ReportingManagerId = managerUserId;
+        resource.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-        await db.Entry(employee).Reference(e => e.ReportingManager).LoadAsync();
-        return mapper.Map<EmployeeDto>(employee);
+        await db.Entry(resource).Reference(r => r.ReportingManager).LoadAsync();
+        return mapper.Map<EmployeeDto>(resource);
     }
 
     public async Task<EmployeeDto> CreateProfileForUserAsync(int userId, string fullName, string email)
     {
-        var employee = new Employee
+        var user = await db.Users.FindAsync(userId)
+            ?? throw new NotFoundException(ErrorMessages.UserNotFoundById(userId));
+
+        user.FullName = fullName;
+        user.Email = email;
+        if (string.IsNullOrWhiteSpace(user.Designation))
+            user.Designation = SystemDefaults.UnassignedDesignation;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        var now = DateTime.UtcNow;
+        var resource = new Resource
         {
             UserId = userId,
-            FullName = fullName,
-            Email = email,
-            Department = Core.Constants.SystemDefaults.UnassignedDepartment,
-            Designation = Core.Constants.SystemDefaults.UnassignedDesignation,
             Status = EmployeeStatus.Bench,
-            IsActive = true
+            CreatedAt = now,
+            UpdatedAt = now
         };
 
-        db.Employees.Add(employee);
+        db.Resources.Add(resource);
         await db.SaveChangesAsync();
 
-        var created = await db.Employees.Include(e => e.User).FirstAsync(e => e.Id == employee.Id);
+        var created = await ActiveResourcesQuery().FirstAsync(r => r.Id == resource.Id);
         return mapper.Map<EmployeeDto>(created);
     }
 
-    public async Task<EmployeeDto> CreateAsync(CreateEmployeeDto dto)
-    {
-        var employee = mapper.Map<Employee>(dto);
-        db.Employees.Add(employee);
-        await db.SaveChangesAsync();
-
-        var created = await db.Employees.Include(e => e.User).FirstAsync(e => e.Id == employee.Id);
-        return mapper.Map<EmployeeDto>(created);
-    }
+    public Task<EmployeeDto> CreateAsync(CreateEmployeeDto dto) =>
+        throw new NotSupportedException("Create employee profile via user creation.");
 
     public async Task<EmployeeDto> UpdateAsync(int id, UpdateEmployeeDto dto)
     {
-        var employee = await db.Employees
-            .Include(e => e.User)
-            .FirstOrDefaultAsync(e => e.Id == id)
+        var resource = await db.Resources
+            .Include(r => r.User).ThenInclude(u => u.Role)
+            .Include(r => r.ReportingManager)
+            .FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException(ErrorMessages.EmployeeNotFoundById(id));
-        mapper.Map(dto, employee);
+
+        mapper.Map(dto, resource.User);
+        resource.User.UpdatedAt = DateTime.UtcNow;
+        resource.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-        return mapper.Map<EmployeeDto>(employee);
+        return mapper.Map<EmployeeDto>(resource);
     }
 
     public async Task DeactivateAsync(int id)
     {
-        var employee = await db.Employees.FindAsync(id)
-                       ?? throw new NotFoundException(ErrorMessages.EmployeeNotFoundById(id));
+        var resource = await db.Resources
+            .Include(r => r.User)
+            .FirstOrDefaultAsync(r => r.Id == id)
+            ?? throw new NotFoundException(ErrorMessages.EmployeeNotFoundById(id));
 
-        var activeAllocations = await db.Allocations
-            .Where(a => a.EmployeeId == id && a.IsActive)
-            .ToListAsync();
-
-        foreach (var allocation in activeAllocations)
+        foreach (var allocation in await db.Allocations
+                     .Where(a => a.ResourceId == id && a.IsActive).ToListAsync())
         {
             allocation.IsActive = false;
             allocation.ToDate = DateOnly.FromDateTime(DateTime.Today);
         }
 
-        employee.IsActive = false;
-        employee.Status = EmployeeStatus.Bench;
-
-        var user = await db.Users.FindAsync(employee.UserId);
-        if (user is not null) user.IsActive = false;
-
+        resource.Status = EmployeeStatus.Bench;
+        resource.User.IsActive = false;
+        resource.User.UpdatedAt = DateTime.UtcNow;
+        resource.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
     }
 
     public async Task<bool> UserHasEmployeeProfileAsync(int userId) =>
-        await db.Employees.AnyAsync(e => e.UserId == userId);
+        await db.Resources.AnyAsync(r => r.UserId == userId);
 
     public async Task<bool> UserExistsForEmployeeAsync(int userId) =>
-        await db.Users.AnyAsync(u => u.Id == userId && (u.Role == UserRole.Employee || u.Role == UserRole.Manager));
+        await db.Users
+            .Include(u => u.Role)
+            .AnyAsync(u => u.Id == userId &&
+                           (u.Role.Name == RoleNames.Employee || u.Role.Name == RoleNames.Manager));
 
     public async Task SetStatusAsync(int employeeId, EmployeeStatus status)
     {
-        var employee = await db.Employees.FindAsync(employeeId)
+        var resource = await db.Resources.FindAsync(employeeId)
                        ?? throw new NotFoundException(ErrorMessages.EmployeeNotFoundById(employeeId));
-        employee.Status = status;
+        resource.Status = status;
+        resource.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
     }
 }

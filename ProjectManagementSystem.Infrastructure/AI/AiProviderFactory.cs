@@ -12,8 +12,8 @@ public sealed class AiProviderFactory(
 {
     public bool IsConfigured(SystemConfigDto? config) =>
         config is not null &&
-        !string.IsNullOrWhiteSpace(config.LlmApiKey) &&
-        !string.IsNullOrWhiteSpace(config.LlmProvider);
+        !string.IsNullOrWhiteSpace(config.LlmProvider) &&
+        !string.IsNullOrWhiteSpace(config.LlmApiKey);
 
     public IAiProvider Create(SystemConfigDto config)
     {
@@ -21,16 +21,31 @@ public sealed class AiProviderFactory(
             throw new BusinessRuleException(ErrorMessages.LlmNotConfigured);
 
         var provider = config.LlmProvider.Trim();
-        var apiKey = config.LlmApiKey.Trim();
 
-        return provider.Equals(LlmProviders.Groq, StringComparison.OrdinalIgnoreCase)
-            ? new GroqAiProvider(
+        if (provider.Equals(LlmProviders.Groq, StringComparison.OrdinalIgnoreCase))
+        {
+            return new GroqAiProvider(
                 httpClientFactory.CreateClient(HttpClientNames.Groq),
-                apiKey,
-                loggerFactory.CreateLogger<GroqAiProvider>())
-            : new GeminiAiProvider(
+                config.LlmApiKey.Trim(),
+                loggerFactory.CreateLogger<GroqAiProvider>());
+        }
+
+        if (provider.Equals(LlmProviders.Ollama, StringComparison.OrdinalIgnoreCase))
+        {
+            return new OllamaAiProvider(
+                httpClientFactory.CreateClient(HttpClientNames.Ollama),
+                config.LlmApiKey,
+                loggerFactory.CreateLogger<OllamaAiProvider>());
+        }
+
+        if (provider.Equals(LlmProviders.Gemini, StringComparison.OrdinalIgnoreCase))
+        {
+            return new GeminiAiProvider(
                 httpClientFactory.CreateClient(HttpClientNames.Gemini),
-                apiKey,
+                config.LlmApiKey.Trim(),
                 loggerFactory.CreateLogger<GeminiAiProvider>());
+        }
+
+        throw new BusinessRuleException(ErrorMessages.LlmProviderNotSupported);
     }
 }

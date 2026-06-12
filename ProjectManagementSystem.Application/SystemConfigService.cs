@@ -12,6 +12,18 @@ public class SystemConfigService(ISystemConfigRepository configRepo) : ISystemCo
         await configRepo.GetAsync()
         ?? throw new BusinessRuleException(ErrorMessages.SystemConfigNotFound);
 
-    public async Task UpdateAsync(SystemConfigDto dto) =>
-        await configRepo.UpdateAsync(dto);
+    public async Task UpdateAsync(SystemConfigDto dto)
+    {
+        var existing = await GetAsync();
+        var merged = dto with
+        {
+            LlmApiKey = ConfigDisplayDefaults.ShouldPreserveSecret(dto.LlmApiKey)
+                ? existing.LlmApiKey
+                : dto.LlmApiKey,
+            SmtpPassword = ConfigDisplayDefaults.ShouldPreserveSecret(dto.SmtpPassword)
+                ? existing.SmtpPassword
+                : dto.SmtpPassword
+        };
+        await configRepo.UpdateAsync(merged);
+    }
 }

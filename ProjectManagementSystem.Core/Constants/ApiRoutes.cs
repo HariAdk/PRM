@@ -40,7 +40,10 @@ public static class ApiRoutes
     public static string ManagerTimesheetsWithWeek(string weekStart) => $"api/manager/timesheets?weekStart={weekStart}";
     public static string ManagerTimesheet(int id) => $"api/manager/timesheets/{id}";
     public const string ManagerAiSkillMatch = "api/manager/ai/skill-match";
+    public const string ManagerAiTeamBuild = "api/manager/ai/team-build";
     public const string ManagerAiRiskSummary = "api/manager/ai/risk-summary";
+    public const string ManagerFrozenTimesheets = "api/manager/timesheets/frozen";
+    public const string ManagerRestoreTimesheetAccess = "api/manager/timesheets/restore-access";
 
     public const string EmployeeReminder = "api/employee/reminder";
     public const string EmployeeAllocations = "api/employee/allocations";

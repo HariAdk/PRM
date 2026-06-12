@@ -2,20 +2,18 @@ using ProjectManagementSystem.Core.Enums;
 
 namespace ProjectManagementSystem.Infrastructure.Models;
 
-public class Employee
+public class Resource
 {
     public int Id { get; set; }
     public int UserId { get; set; }
-    public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Department { get; set; } = string.Empty;
-    public string Designation { get; set; } = string.Empty;
+    public int? ReportingManagerId { get; set; }
     public EmployeeStatus Status { get; set; } = EmployeeStatus.Bench;
-    public bool IsActive { get; set; } = true;
-    public int? ManagerId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
     public User User { get; set; } = null!;
     public User? ReportingManager { get; set; }
-    public ICollection<EmployeeSkill> Skills { get; set; } = [];
+    public ICollection<ResourceSkill> Skills { get; set; } = [];
     public ICollection<Allocation> Allocations { get; set; } = [];
     public ICollection<Timesheet> Timesheets { get; set; } = [];
 }

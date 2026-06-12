@@ -25,12 +25,11 @@ public class ResourceDashboardScreen(ApiClient api) : IScreen
         else
         {
             ConsoleUI.RenderTable(
-                ["ID", "Name", "Department", "Skills"],
+                ["ID", "Name", "Skills"],
                 dashboard.BenchEmployees.Select(e => new[]
                 {
                     e.EmployeeId.ToString(),
                     e.Name,
-                    e.Department,
                     e.Skills
                 }),
                 rightAlignColumnIndexes: [0]);
@@ -77,7 +76,6 @@ public class ResourceDashboardScreen(ApiClient api) : IScreen
         if (detail is null) { ConsoleUI.Error(ErrorMessages.EmployeeNotFound); ConsoleUI.PressAnyKey(); return; }
 
         ConsoleUI.SubHeader(detail.Name);
-        ConsoleUI.KeyValue("Department", detail.Department);
         ConsoleUI.KeyValue("Current Status", $"{ConsoleUI.StatusUpper(detail.CurrentStatus)} ({detail.CurrentAllocation}%)");
         ConsoleUI.KeyValue("Profile Skills", detail.Skills);
         ConsoleUI.BlankLine();

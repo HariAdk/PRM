@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Mock email outbox (local notification testing)
+**/email-outbox/

@@ -18,21 +18,26 @@ public sealed class GroqAiProvider(
     public async Task<string> CompleteAsync(
         string systemPrompt,
         string userPrompt,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool jsonResponse = false)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, ExternalApiDefaults.GroqChatCompletionsPath);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        request.Content = JsonContent.Create(new
+        var payload = new Dictionary<string, object>
         {
-            model = ExternalApiDefaults.GroqModel,
-            temperature = ExternalApiDefaults.LlmTemperature,
-            max_tokens = ExternalApiDefaults.LlmMaxOutputTokens,
-            messages = new object[]
+            ["model"] = ExternalApiDefaults.GroqModel,
+            ["temperature"] = ExternalApiDefaults.LlmTemperature,
+            ["max_tokens"] = ExternalApiDefaults.LlmMaxOutputTokens,
+            ["messages"] = new object[]
             {
                 new { role = "system", content = systemPrompt },
                 new { role = "user", content = userPrompt }
             }
-        });
+        };
+        if (jsonResponse)
+            payload["response_format"] = new { type = "json_object" };
+
+        request.Content = JsonContent.Create(payload);
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);

@@ -65,7 +65,6 @@ public class AllocateResourceScreen(ApiClient api) : IScreen
 
         var (result, error) = await api.ManagerSkillMatchAsync(new AISkillMatchRequestDto
         {
-            ProjectId = projectId,
             Requirement = requirement
         });
 
@@ -75,7 +74,8 @@ public class AllocateResourceScreen(ApiClient api) : IScreen
         if (result?.UsedFallback == true)
         {
             Console.WriteLine("KEYWORD-MATCHED RESULTS (AI unavailable)");
-            ConsoleUI.Info("Showing only your team members whose skills or activity match your requirement.");
+            ConsoleUI.Info(result.FallbackReason ??
+                "Showing organization resources whose skills or activity match your requirement.");
         }
         else
             Console.WriteLine("AI-MATCHED RESULTS");
@@ -85,7 +85,7 @@ public class AllocateResourceScreen(ApiClient api) : IScreen
         if (matches.Count == 0)
         {
             ConsoleUI.Warning(result?.UsedFallback == true
-                ? "No team members match that requirement. Try different keywords or use direct allocation."
+                ? "No organization resources match that requirement. Try different keywords or use direct allocation."
                 : "No matching employees found.");
             ConsoleUI.PressAnyKey();
             return;

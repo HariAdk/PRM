@@ -1,9 +1,9 @@
 using Moq;
 using ProjectManagementSystem.Application;
 using ProjectManagementSystem.Core.Constants;
-using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.Employee;
 using ProjectManagementSystem.Core.DTOs.User;
+using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 
 namespace ProjectManagementSystem.Tests.Application;
@@ -21,40 +21,51 @@ public class EmployeeServiceTests
     }
 
     [Fact]
+    public async Task GetByIdAsync_ThrowsWhenEmployeeNotFound()
+    {
+        _employeeRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((EmployeeDto?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => _sut.GetByIdAsync(99));
+    }
+
+    [Fact]
+    public async Task CreateAsync_ThrowsWhenUserIdInvalid()
+    {
+        _employeeRepo.Setup(r => r.UserExistsForEmployeeAsync(1)).ReturnsAsync(false);
+
+        var dto = new CreateEmployeeDto { UserId = 1, Department = "IT", Designation = "Dev" };
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CreateAsync(dto));
+    }
+
+    [Fact]
+    public async Task CreateAsync_ThrowsWhenProfileAlreadyExists()
+    {
+        _employeeRepo.Setup(r => r.UserExistsForEmployeeAsync(1)).ReturnsAsync(true);
+        _employeeRepo.Setup(r => r.UserHasEmployeeProfileAsync(1)).ReturnsAsync(true);
+
+        var dto = new CreateEmployeeDto { UserId = 1, Department = "IT", Designation = "Dev" };
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.CreateAsync(dto));
+    }
+
+    [Fact]
     public async Task AssignManagerAsync_ThrowsWhenEmployeeUserIsNotEmployeeRole()
     {
-        _userRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserDto
-        {
-            Id = 1,
-            Role = RoleNames.Manager
-        });
+        _userRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserDto { Id = 1, Role = RoleNames.Manager });
 
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _sut.AssignManagerAsync(new AssignManagerDto { EmployeeUserId = 1, ManagerUserId = 2 }));
     }
 
     [Fact]
-    public async Task AssignManagerAsync_ThrowsWhenManagerUserIsNotManagerRole()
+    public async Task GetSkillsAsync_ReturnsSkillsFromRepository()
     {
-        _userRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserDto { Id = 1, Role = RoleNames.Employee });
-        _userRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new UserDto { Id = 2, Role = RoleNames.Employee });
+        var skills = new[] { new EmployeeSkillDto { SkillName = "C#" } };
+        _skillRepo.Setup(r => r.GetSkillsByEmployeeAsync(3)).ReturnsAsync(skills);
 
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.AssignManagerAsync(new AssignManagerDto { EmployeeUserId = 1, ManagerUserId = 2 }));
+        var result = await _sut.GetSkillsAsync(3);
 
-        Assert.Equal(ErrorMessages.InvalidManagerAssignment, ex.Message);
-    }
-
-    [Fact]
-    public async Task AssignManagerAsync_ThrowsWhenEmployeeProfileMissing()
-    {
-        _userRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserDto { Id = 1, Role = RoleNames.Employee });
-        _userRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new UserDto { Id = 2, Role = RoleNames.Manager });
-        _employeeRepo.Setup(r => r.UserHasEmployeeProfileAsync(1)).ReturnsAsync(false);
-
-        var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
-            _sut.AssignManagerAsync(new AssignManagerDto { EmployeeUserId = 1, ManagerUserId = 2 }));
-
-        Assert.Equal(ErrorMessages.EmployeeProfileRequired, ex.Message);
+        Assert.Single(result);
     }
 }

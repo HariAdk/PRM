@@ -12,6 +12,7 @@ public class Project
     public DateOnly EndDate { get; set; }
     public ProjectStatus Status { get; set; } = ProjectStatus.Planned;
     public ProjectHealth HealthStatus { get; set; } = ProjectHealth.OnTrack;
+    public DateTime? AtRiskNotifiedAt { get; set; }
     public int TotalStoryPoints { get; set; }
     public User Manager { get; set; } = null!;
     public ICollection<Milestone> Milestones { get; set; } = [];

@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.Employee;
-using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Infrastructure.Data;
 using ProjectManagementSystem.Infrastructure.Models;
@@ -14,9 +13,9 @@ public class SkillRepository(AppDbContext db, IMapper mapper) : ISkillRepository
 {
     public async Task<IEnumerable<EmployeeSkillDto>> GetSkillsByEmployeeAsync(int employeeId)
     {
-        var skills = await db.EmployeeSkills
-            .Include(es => es.Skill)
-            .Where(es => es.EmployeeId == employeeId)
+        var skills = await db.ResourceSkills
+            .Include(rs => rs.Skill)
+            .Where(rs => rs.ResourceId == employeeId)
             .ToListAsync();
         return mapper.Map<IEnumerable<EmployeeSkillDto>>(skills);
     }
@@ -31,38 +30,37 @@ public class SkillRepository(AppDbContext db, IMapper mapper) : ISkillRepository
             await db.SaveChangesAsync();
         }
 
-        var already = await db.EmployeeSkills
-            .AnyAsync(es => es.EmployeeId == employeeId && es.SkillId == skill.Id);
-        if (already) throw new BusinessRuleException(ErrorMessages.EmployeeAlreadyHasSkill);
+        if (await db.ResourceSkills.AnyAsync(rs => rs.ResourceId == employeeId && rs.SkillId == skill.Id))
+            throw new BusinessRuleException(ErrorMessages.EmployeeAlreadyHasSkill);
 
-        var es = mapper.Map<EmployeeSkill>(dto);
-        es.EmployeeId = employeeId;
-        es.SkillId = skill.Id;
-        db.EmployeeSkills.Add(es);
+        var resourceSkill = mapper.Map<ResourceSkill>(dto);
+        resourceSkill.ResourceId = employeeId;
+        resourceSkill.SkillId = skill.Id;
+        db.ResourceSkills.Add(resourceSkill);
         await db.SaveChangesAsync();
-        es.Skill = skill;
-        return mapper.Map<EmployeeSkillDto>(es);
+        resourceSkill.Skill = skill;
+        return mapper.Map<EmployeeSkillDto>(resourceSkill);
     }
 
     public async Task<EmployeeSkillDto> UpdateSkillAsync(int employeeId, int skillId, UpdateSkillDto dto)
     {
-        var es = await db.EmployeeSkills
-            .Include(e => e.Skill)
-            .FirstOrDefaultAsync(e => e.EmployeeId == employeeId && e.SkillId == skillId)
+        var resourceSkill = await db.ResourceSkills
+            .Include(rs => rs.Skill)
+            .FirstOrDefaultAsync(rs => rs.ResourceId == employeeId && rs.SkillId == skillId)
             ?? throw new NotFoundException(ErrorMessages.SkillNotFoundForEmployee());
 
-        mapper.Map(dto, es);
+        mapper.Map(dto, resourceSkill);
         await db.SaveChangesAsync();
-        return mapper.Map<EmployeeSkillDto>(es);
+        return mapper.Map<EmployeeSkillDto>(resourceSkill);
     }
 
     public async Task RemoveSkillAsync(int employeeId, int skillId)
     {
-        var es = await db.EmployeeSkills
-            .FirstOrDefaultAsync(e => e.EmployeeId == employeeId && e.SkillId == skillId)
+        var resourceSkill = await db.ResourceSkills
+            .FirstOrDefaultAsync(rs => rs.ResourceId == employeeId && rs.SkillId == skillId)
             ?? throw new NotFoundException(ErrorMessages.SkillNotFoundForEmployee());
 
-        db.EmployeeSkills.Remove(es);
+        db.ResourceSkills.Remove(resourceSkill);
         await db.SaveChangesAsync();
     }
 }

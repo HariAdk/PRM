@@ -4,4 +4,5 @@ public static class HttpClientNames
 {
     public const string Gemini = "Gemini";
     public const string Groq = "Groq";
+    public const string Ollama = "Ollama";
 }

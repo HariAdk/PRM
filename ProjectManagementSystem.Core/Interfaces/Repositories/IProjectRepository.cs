@@ -1,3 +1,4 @@
+using ProjectManagementSystem.Core.DTOs.Notification;
 using ProjectManagementSystem.Core.DTOs.Project;
 using ProjectManagementSystem.Core.Enums;
 
@@ -9,6 +10,8 @@ public interface IProjectRepository
     Task<IEnumerable<ProjectDto>> GetAllAsync();
     Task<IEnumerable<ProjectDto>> GetActiveAsync();
     Task UpdateHealthStatusAsync(int projectId, ProjectHealth health);
+    Task<IReadOnlyList<AtRiskProjectEmailDto>> GetAtRiskProjectsPendingNotificationAsync();
+    Task MarkAtRiskNotifiedAsync(int projectId);
     Task<ProjectDto> CreateAsync(CreateProjectDto dto);
     Task<ProjectDto> UpdateAsync(int id, UpdateProjectDto dto);
     Task<IEnumerable<MilestoneDto>> GetMilestonesAsync(int projectId);

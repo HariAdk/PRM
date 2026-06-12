@@ -14,7 +14,8 @@ public class EmployeePortalService(
     IEmployeeRepository employeeRepo,
     IAllocationRepository allocationRepo,
     ITimesheetRepository timesheetRepo,
-    ISystemConfigRepository configRepo) : IEmployeePortalService
+    ISystemConfigRepository configRepo,
+    ITimesheetReminderRepository reminderRepo) : IEmployeePortalService
 {
     public async Task<EmployeeProfileDto> GetProfileAsync(int userId)
     {
@@ -44,6 +45,9 @@ public class EmployeePortalService(
     {
         var employee = await RequireEmployeeAsync(userId);
         var lastCompletedWeek = WeekDateHelper.GetLastCompletedWeekMonday(DateTime.Today);
+        var weekStart = DateOnly.FromDateTime(lastCompletedWeek);
+        var lastWeekSunday = weekStart.AddDays(6);
+        var today = DateOnly.FromDateTime(DateTime.Today);
 
         if (!await HadActiveAllocationDuringWeekAsync(employee.Id, lastCompletedWeek))
             return new EmployeeReminderDto { ShowReminder = false };
@@ -51,12 +55,32 @@ public class EmployeePortalService(
         if (await timesheetRepo.HasSubmittedForWeekAsync(employee.Id, lastCompletedWeek))
             return new EmployeeReminderDto { ShowReminder = false };
 
-        return new EmployeeReminderDto
+        var state = await reminderRepo.GetAsync(employee.Id, weekStart);
+        if (state?.IsFrozen == true && state.RestoredAt is null)
         {
-            ShowReminder = true,
-            MissingWeekStart = lastCompletedWeek,
-            Message = $"Timesheet for week {lastCompletedWeek:dd-MMM-yyyy} has not been submitted."
-        };
+            return new EmployeeReminderDto
+            {
+                IsFrozen = true,
+                MissingWeekStart = lastCompletedWeek,
+                Message = ErrorMessages.TimesheetSubmissionFrozen
+            };
+        }
+
+        var workingDays = WorkingDayHelper.CountWorkingDaysSinceWeekEnd(lastWeekSunday, today);
+        if (workingDays is >= 1 and <= SystemDefaults.TimesheetReminderDays)
+        {
+            return new EmployeeReminderDto
+            {
+                ShowReminder = true,
+                ReminderDay = workingDays,
+                MissingWeekStart = lastCompletedWeek,
+                Message =
+                    $"Reminder {workingDays} of {SystemDefaults.TimesheetReminderDays}: " +
+                    $"Timesheet for week {lastCompletedWeek:dd-MMM-yyyy} has not been submitted."
+            };
+        }
+
+        return new EmployeeReminderDto { ShowReminder = false };
     }
 
     public async Task<EmployeeSubmitContextDto> GetSubmitContextAsync(int userId, DateTime? weekStart)
@@ -68,6 +92,8 @@ public class EmployeePortalService(
             ? WeekDateHelper.GetMondayOfWeek(weekStart.Value)
             : WeekDateHelper.GetMondayOfWeek(DateTime.Today);
         WeekDateHelper.EnsureWeekNotInFuture(weekMonday);
+
+        await EnsureTimesheetNotFrozenAsync(employee.Id, weekMonday);
 
         var allocations = await GetWeekAllocationsAsync(employee.Id, weekMonday, config.MaxWeeklyHours);
         var alreadySubmitted = await timesheetRepo.HasSubmittedForWeekAsync(employee.Id, weekMonday);
@@ -92,6 +118,7 @@ public class EmployeePortalService(
 
         var weekMonday = WeekDateHelper.GetMondayOfWeek(dto.WeekStartDate);
         WeekDateHelper.EnsureWeekNotInFuture(weekMonday);
+        await EnsureTimesheetNotFrozenAsync(employee.Id, weekMonday);
 
         if (await timesheetRepo.HasSubmittedForWeekAsync(employee.Id, weekMonday))
             throw new BusinessRuleException(ErrorMessages.TimesheetAlreadySubmitted);
@@ -199,6 +226,13 @@ public class EmployeePortalService(
             throw new BusinessRuleException(
                 ErrorMessages.TotalHoursExceedWeeklyMax(totalHours, maxWeeklyHours));
         }
+    }
+
+    private async Task EnsureTimesheetNotFrozenAsync(int employeeId, DateTime weekMonday)
+    {
+        var state = await reminderRepo.GetAsync(employeeId, DateOnly.FromDateTime(weekMonday));
+        if (state?.IsFrozen == true && state.RestoredAt is null)
+            throw new BusinessRuleException(ErrorMessages.TimesheetSubmissionFrozen);
     }
 
     private async Task<Core.DTOs.Employee.EmployeeDto> RequireEmployeeAsync(int userId)

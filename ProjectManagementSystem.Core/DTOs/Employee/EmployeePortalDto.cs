@@ -5,6 +5,8 @@ namespace ProjectManagementSystem.Core.DTOs.Employee;
 public record EmployeeReminderDto
 {
     public bool ShowReminder { get; init; }
+    public bool IsFrozen { get; init; }
+    public int ReminderDay { get; init; }
     public string Message { get; init; } = string.Empty;
     public DateTime? MissingWeekStart { get; init; }
 }

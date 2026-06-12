@@ -12,63 +12,47 @@ namespace ProjectManagementSystem.Infrastructure.Repositories;
 
 public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRepository
 {
+    private IQueryable<Timesheet> WithIncludes() =>
+        db.Timesheets
+            .Include(t => t.Resource).ThenInclude(r => r.User)
+            .Include(t => t.Entries).ThenInclude(e => e.Project);
+
     public async Task<IEnumerable<TimesheetDto>> GetByEmployeeIdAsync(int employeeId)
     {
-        var list = await db.Timesheets
-            .Where(t => t.EmployeeId == employeeId)
-            .Include(t => t.Employee)
-            .Include(t => t.Entries)
-                .ThenInclude(e => e.Project)
+        var list = await WithIncludes()
+            .Where(t => t.ResourceId == employeeId)
             .OrderByDescending(t => t.WeekStartDate)
             .ToListAsync();
-
         return mapper.Map<IEnumerable<TimesheetDto>>(list);
     }
 
     public async Task<IEnumerable<TimesheetDto>> GetByWeekStartAsync(DateTime weekStart)
     {
         var weekStartDate = DateOnly.FromDateTime(weekStart);
-        var list = await db.Timesheets
-            .Where(t => t.WeekStartDate == weekStartDate)
-            .Include(t => t.Employee)
-            .Include(t => t.Entries)
-                .ThenInclude(e => e.Project)
-            .ToListAsync();
-
+        var list = await WithIncludes().Where(t => t.WeekStartDate == weekStartDate).ToListAsync();
         return mapper.Map<IEnumerable<TimesheetDto>>(list);
     }
 
-    public async Task<IEnumerable<string>> GetRecentActivityTagsAsync(int employeeId, int count = 5)
-    {
-        return await db.TimesheetEntries
-            .Where(e => e.Timesheet.EmployeeId == employeeId && e.ActivityTags != string.Empty)
+    public async Task<IEnumerable<string>> GetRecentActivityTagsAsync(int employeeId, int count = 5) =>
+        await db.TimesheetEntries
+            .Where(e => e.Timesheet.ResourceId == employeeId && e.ActivityTags != string.Empty)
             .OrderByDescending(e => e.Timesheet.WeekStartDate)
             .Select(e => e.ActivityTags)
             .Distinct()
             .Take(count)
             .ToListAsync();
-    }
 
     public async Task<TimesheetDto?> GetByIdAsync(int timesheetId)
     {
-        var timesheet = await db.Timesheets
-            .Include(t => t.Employee)
-            .Include(t => t.Entries)
-                .ThenInclude(e => e.Project)
-            .FirstOrDefaultAsync(t => t.Id == timesheetId);
-
+        var timesheet = await WithIncludes().FirstOrDefaultAsync(t => t.Id == timesheetId);
         return timesheet is null ? null : mapper.Map<TimesheetDto>(timesheet);
     }
 
     public async Task<TimesheetDto?> GetByEmployeeAndWeekAsync(int employeeId, DateTime weekStart)
     {
         var weekStartDate = DateOnly.FromDateTime(weekStart);
-        var timesheet = await db.Timesheets
-            .Include(t => t.Employee)
-            .Include(t => t.Entries)
-                .ThenInclude(e => e.Project)
-            .FirstOrDefaultAsync(t => t.EmployeeId == employeeId && t.WeekStartDate == weekStartDate);
-
+        var timesheet = await WithIncludes()
+            .FirstOrDefaultAsync(t => t.ResourceId == employeeId && t.WeekStartDate == weekStartDate);
         return timesheet is null ? null : mapper.Map<TimesheetDto>(timesheet);
     }
 
@@ -76,7 +60,7 @@ public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRe
     {
         var weekStartDate = DateOnly.FromDateTime(weekStart);
         return await db.Timesheets.AnyAsync(t =>
-            t.EmployeeId == employeeId &&
+            t.ResourceId == employeeId &&
             t.WeekStartDate == weekStartDate &&
             t.Status == TimesheetStatus.Submitted);
     }
@@ -93,9 +77,7 @@ public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRe
             entry.TimesheetId = timesheet.Id;
             db.TimesheetEntries.Add(entry);
         }
-
         await db.SaveChangesAsync();
-
         return (await GetByIdAsync(timesheet.Id))!;
     }
 
@@ -103,11 +85,9 @@ public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRe
     {
         var timesheet = await db.Timesheets.FindAsync(timesheetId);
         if (timesheet is null) return false;
-
         timesheet.Status = TimesheetStatus.Submitted;
         timesheet.SubmittedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-
         return true;
     }
 
@@ -115,19 +95,18 @@ public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRe
     {
         var weekStartDate = DateOnly.FromDateTime(weekStart);
         return await db.Timesheets.AnyAsync(t =>
-            t.EmployeeId == employeeId && t.WeekStartDate == weekStartDate);
+            t.ResourceId == employeeId && t.WeekStartDate == weekStartDate);
     }
 
     public async Task CreateMissedAsync(int employeeId, DateTime weekStart)
     {
         var weekStartDate = DateOnly.FromDateTime(weekStart);
-        var exists = await db.Timesheets.AnyAsync(t =>
-            t.EmployeeId == employeeId && t.WeekStartDate == weekStartDate);
-        if (exists) return;
+        if (await db.Timesheets.AnyAsync(t => t.ResourceId == employeeId && t.WeekStartDate == weekStartDate))
+            return;
 
         db.Timesheets.Add(new Timesheet
         {
-            EmployeeId = employeeId,
+            ResourceId = employeeId,
             WeekStartDate = weekStartDate,
             TotalHours = 0,
             Status = TimesheetStatus.Missed
@@ -146,7 +125,6 @@ public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRe
             throw new BusinessRuleException(ErrorMessages.TimesheetAlreadySubmitted);
 
         db.TimesheetEntries.RemoveRange(timesheet.Entries);
-
         foreach (var entryDto in dto.Entries)
         {
             var entry = mapper.Map<TimesheetEntry>(entryDto);
@@ -158,7 +136,6 @@ public class TimesheetRepository(AppDbContext db, IMapper mapper) : ITimesheetRe
         timesheet.Status = TimesheetStatus.Submitted;
         timesheet.SubmittedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-
         return (await GetByIdAsync(timesheetId))!;
     }
 }
