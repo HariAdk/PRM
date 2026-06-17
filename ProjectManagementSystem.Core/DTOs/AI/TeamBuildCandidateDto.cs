@@ -6,6 +6,7 @@ public record TeamBuildCandidateDto
     public string Name { get; init; } = string.Empty;
     public string Department { get; init; } = string.Empty;
     public string Designation { get; init; } = string.Empty;
+    public decimal AvailabilityPercent { get; init; }
     public string SkillsWithProficiency { get; init; } = string.Empty;
     public string RecentActivity { get; init; } = string.Empty;
 }

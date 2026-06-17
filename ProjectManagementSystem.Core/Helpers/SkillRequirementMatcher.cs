@@ -201,6 +201,29 @@ public static class SkillRequirementMatcher
                MeetsProficiency(requirement, skillsForMatch);
     }
 
+    public static int GetBestMatchingProficiencyRank(string requirement, string skillsWithProficiency)
+    {
+        if (string.IsNullOrWhiteSpace(skillsWithProficiency))
+            return 0;
+
+        var skillKeywords = ExtractSkillKeywords(requirement);
+        if (skillKeywords.Count == 0)
+            return 0;
+
+        var best = 0;
+        foreach (var part in skillsWithProficiency.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!SkillPartMatchesKeywords(part, skillKeywords))
+                continue;
+
+            var candidateLevel = ParseProficiencyFromSkillPart(part);
+            if (candidateLevel.HasValue)
+                best = Math.Max(best, ProficiencyRank(candidateLevel.Value));
+        }
+
+        return best;
+    }
+
     public static int ScoreProfile(string requirement, string skills, string department, string recentActivity)
     {
         var keywords = ExtractSkillKeywords(requirement);

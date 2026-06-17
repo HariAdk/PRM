@@ -4,6 +4,7 @@ public record SkillMatchCandidateDto
 {
     public int EmployeeId { get; init; }
     public string Name { get; init; } = string.Empty;
+    public string Designation { get; init; } = string.Empty;
     public string Department { get; init; } = string.Empty;
     public string Skills { get; init; } = string.Empty;
     public string SkillsWithProficiency { get; init; } = string.Empty;

@@ -57,10 +57,11 @@ public class AiService(
             var validated = AiResponseParser.ValidateSkillMatches(parsed, request.Requirement, candidates);
             if (validated.Count > 0)
             {
+                var sorted = AiResponseParser.SortSkillMatches(validated, request.Requirement, candidates);
                 logger.LogInformation(
                     "Skill match completed via {Provider} with {MatchCount} result(s)",
-                    provider.ProviderName, validated.Count);
-                return new AISkillMatchResultDto { Matches = validated, UsedFallback = false };
+                    provider.ProviderName, sorted.Count);
+                return new AISkillMatchResultDto { Matches = sorted, UsedFallback = false };
             }
 
             if (parsed.Count > 0)
@@ -211,9 +212,20 @@ public class AiService(
             .OrderBy(e => e.FullName)
             .ToList();
 
+        var allAllocations = (await allocationRepo.GetAllActiveAsync()).ToList();
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var candidates = new List<TeamBuildCandidateDto>();
         foreach (var emp in benchEmployees)
         {
+            var allocated = allAllocations
+                .Where(a => a.EmployeeId == emp.Id &&
+                            a.FromDate <= today &&
+                            a.ToDate >= today)
+                .Sum(a => a.UtilisationPercent);
+            var availability = AllocationLimits.MaxTotalUtilisationPercent - allocated;
+            if (availability <= 0)
+                continue;
+
             var skills = (await skillRepo.GetSkillsByEmployeeAsync(emp.Id)).ToList();
             var skillsWithProficiency = skills.Count == 0
                 ? string.Empty
@@ -226,6 +238,7 @@ public class AiService(
                 Name = emp.FullName,
                 Department = emp.Department,
                 Designation = emp.Designation,
+                AvailabilityPercent = availability,
                 SkillsWithProficiency = skillsWithProficiency,
                 RecentActivity = string.Join(", ", activityTags)
             });
@@ -286,6 +299,7 @@ public class AiService(
             {
                 EmployeeId = emp.Id,
                 Name = emp.FullName,
+                Designation = emp.Designation,
                 Department = emp.Department,
                 Skills = skillsCsv,
                 SkillsWithProficiency = skillsWithProficiency,

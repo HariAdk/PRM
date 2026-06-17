@@ -63,8 +63,22 @@ public class NotificationService(
                     LastReminderDate = today
                 };
                 await reminderRepo.UpdateAsync(state);
+
+                var employee = await employeeRepo.GetByIdAsync(employeeId);
+                if (employee is not null && !string.IsNullOrWhiteSpace(employee.Email))
+                {
+                    await emailService.SendAsync(
+                        employee.Email,
+                        $"[PRM] Timesheet Reminder {workingDaysSinceDeadline}/{SystemDefaults.TimesheetReminderDays}",
+                        EmailTemplates.TimesheetReminder(
+                            employee.FullName,
+                            weekStart,
+                            workingDaysSinceDeadline,
+                            SystemDefaults.TimesheetReminderDays));
+                }
+
                 logger.LogInformation(
-                    "Timesheet reminder {Day} recorded for employee {EmployeeId}, week {Week}",
+                    "Timesheet reminder {Day} emailed for employee {EmployeeId}, week {Week}",
                     workingDaysSinceDeadline, employeeId, weekStart);
                 continue;
             }

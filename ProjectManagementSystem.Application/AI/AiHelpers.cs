@@ -16,6 +16,7 @@ internal static class AiPromptBuilder
         - Only include employees whose listed skills (with proficiency levels) or recent activity match the requirement.
         - Respect proficiency when stated (e.g. beginner, intermediate, advanced).
         - Respect availability constraints: "min X% availability" means freeCapacity >= X; "max X% availability" means freeCapacity <= X.
+        - Rank matches in descending order: highest matching skill proficiency, then seniority (SSE > SE > JSE), then free capacity.
         - If no candidate satisfies both, return {"matches":[]}.
         Respond with valid JSON only — no markdown fences, no extra text.
         JSON shape:
@@ -42,7 +43,7 @@ internal static class AiPromptBuilder
         foreach (var c in candidates)
         {
             sb.AppendLine(
-                $"- employeeId={c.EmployeeId}, name={c.Name}, department={c.Department}, " +
+                $"- employeeId={c.EmployeeId}, name={c.Name}, designation={c.Designation}, department={c.Department}, " +
                 $"skills=[{c.SkillsWithProficiency}], freeCapacity={c.AvailabilityPercent}%, " +
                 $"freeHoursPerWeek={c.FreeHoursPerWeek:0.#}, recentActivity=[{c.RecentActivity}]");
         }
@@ -151,6 +152,7 @@ internal static class AiResponseParser
                 {
                     EmployeeId = candidate.EmployeeId,
                     Name = candidate.Name,
+                    Designation = candidate.Designation,
                     SkillsMatch = string.IsNullOrWhiteSpace(candidate.SkillsWithProficiency)
                         ? candidate.Skills
                         : candidate.SkillsWithProficiency,
@@ -167,6 +169,15 @@ internal static class AiResponseParser
             return [];
         }
     }
+
+    public static List<AIMatchedEmployeeDto> SortSkillMatches(
+        IReadOnlyList<AIMatchedEmployeeDto> matches,
+        string requirement,
+        IReadOnlyList<SkillMatchCandidateDto> candidates) =>
+        AiCandidateRanker.SortSkillMatches(
+            matches,
+            requirement,
+            candidates.ToDictionary(c => c.EmployeeId));
 
     private static bool TryGetEmployeeId(JsonElement item, out int employeeId)
     {
@@ -249,35 +260,37 @@ internal static class AiFallbackMatcher
     {
         var matches = candidates
             .Where(c => SkillRequirementMatcher.MeetsRequirement(requirement, c))
-            .Select(c => new
-            {
-                Candidate = c,
-                Score = SkillRequirementMatcher.ScoreProfile(
-                    requirement, c.Skills, c.Department, c.RecentActivity)
-            })
-            .Where(x => x.Score > 0)
-            .OrderByDescending(x => x.Score)
-            .ThenByDescending(x => x.Candidate.AvailabilityPercent)
+            .Where(c => SkillRequirementMatcher.ScoreProfile(
+                requirement, c.Skills, c.Department, c.RecentActivity) > 0);
+
+        var ranked = AiCandidateRanker.OrderByMatchQuality(
+                matches,
+                requirement,
+                c => string.IsNullOrWhiteSpace(c.SkillsWithProficiency) ? c.Skills : c.SkillsWithProficiency,
+                c => c.Designation,
+                c => c.AvailabilityPercent,
+                c => c.Name)
             .Take(5)
-            .Select(x => new AIMatchedEmployeeDto
+            .Select(c => new AIMatchedEmployeeDto
             {
-                EmployeeId = x.Candidate.EmployeeId,
-                Name = x.Candidate.Name,
-                SkillsMatch = string.IsNullOrWhiteSpace(x.Candidate.SkillsWithProficiency)
-                    ? x.Candidate.Skills
-                    : x.Candidate.SkillsWithProficiency,
-                AvailabilityPercentage = x.Candidate.AvailabilityPercent,
-                RecentActivity = x.Candidate.RecentActivity,
+                EmployeeId = c.EmployeeId,
+                Name = c.Name,
+                Designation = c.Designation,
+                SkillsMatch = string.IsNullOrWhiteSpace(c.SkillsWithProficiency)
+                    ? c.Skills
+                    : c.SkillsWithProficiency,
+                AvailabilityPercentage = c.AvailabilityPercent,
+                RecentActivity = c.RecentActivity,
                 Reason =
-                    $"{x.Candidate.Name} matches based on skills/activity " +
-                    $"({(string.IsNullOrWhiteSpace(x.Candidate.SkillsWithProficiency) ? x.Candidate.Skills : x.Candidate.SkillsWithProficiency)}) " +
-                    $"with {x.Candidate.AvailabilityPercent}% free capacity."
+                    $"{c.Name} matches based on skills/activity " +
+                    $"({(string.IsNullOrWhiteSpace(c.SkillsWithProficiency) ? c.Skills : c.SkillsWithProficiency)}) " +
+                    $"with {c.AvailabilityPercent}% free capacity."
             })
             .ToList();
 
         return new AISkillMatchResultDto
         {
-            Matches = matches,
+            Matches = ranked,
             UsedFallback = true,
             FallbackReason = fallbackReason
         };

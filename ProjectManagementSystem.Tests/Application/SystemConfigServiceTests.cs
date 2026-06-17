@@ -38,9 +38,11 @@ public class SystemConfigServiceTests
     [Fact]
     public async Task UpdateAsync_CallsRepository()
     {
+        var existing = new SystemConfigDto { MaxWeeklyHours = 40, SchedulerIntervalHours = 4 };
         var dto = new SystemConfigDto { MaxWeeklyHours = 45, SchedulerIntervalHours = 6 };
         var updated = false;
-        _configRepo.Setup(r => r.UpdateAsync(dto))
+        _configRepo.Setup(r => r.GetAsync()).ReturnsAsync(existing);
+        _configRepo.Setup(r => r.UpdateAsync(It.IsAny<SystemConfigDto>()))
             .Callback(() => updated = true)
             .Returns(Task.CompletedTask);
 

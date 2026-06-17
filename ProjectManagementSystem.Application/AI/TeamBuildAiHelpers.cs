@@ -18,6 +18,7 @@ internal static class TeamBuildAiPromptBuilder
         - Use ONLY employeeIds from the candidate list (all are on BENCH).
         - Do not assign the same employeeId to more than one role.
         - skillsMatch must list relevant skills with proficiency from the candidate data (e.g. "Java (Advanced)").
+        - When multiple bench candidates fit a role, prefer higher skill proficiency, then senior designation (SSE > SE > JSE), then availability.
         - If no bench candidate matches a role, set status to "not_found", employeeId to null, and explain why in reason.
         Respond with valid JSON only — no markdown fences, no extra text.
         JSON shape:
@@ -38,7 +39,7 @@ internal static class TeamBuildAiPromptBuilder
             sb.AppendLine(
                 $"- employeeId={c.EmployeeId}, name={c.Name}, designation={c.Designation}, " +
                 $"department={c.Department}, skills=[{c.SkillsWithProficiency}], " +
-                $"recentActivity=[{c.RecentActivity}]");
+                $"freeCapacity={c.AvailabilityPercent}%, recentActivity=[{c.RecentActivity}]");
         }
 
         return sb.ToString();
@@ -141,12 +142,22 @@ internal static class TeamBuildAiResponseParser
                     reason = $"No bench employee found with skills matching {role}.";
                 }
 
+                var designation = string.Empty;
+                var availability = 0m;
+                if (isMatched && employeeId.HasValue && candidateMap.TryGetValue(employeeId.Value, out var matchedCandidate))
+                {
+                    designation = matchedCandidate.Designation;
+                    availability = matchedCandidate.AvailabilityPercent;
+                }
+
                 results.Add(new TeamBuildRoleSuggestionDto
                 {
                     Role = role,
                     Status = isMatched ? "Matched" : "Not Found",
                     EmployeeId = employeeId,
                     EmployeeName = employeeName,
+                    Designation = designation,
+                    AvailabilityPercentage = availability,
                     SkillsMatch = skillsMatch,
                     Reason = reason
                 });
@@ -177,17 +188,15 @@ internal static class TeamBuildFallbackMatcher
 
         foreach (var role in rolePhrases)
         {
-            var best = candidates
-                .Where(c => !usedIds.Contains(c.EmployeeId))
-                .Select(c => new
-                {
-                    Candidate = c,
-                    Score = SkillRequirementMatcher.ScoreProfile(
-                        role, c.SkillsWithProficiency, c.Department, c.RecentActivity)
-                })
-                .Where(x => x.Score > 0)
-                .OrderByDescending(x => x.Score)
-                .FirstOrDefault();
+            var best = AiCandidateRanker.OrderByMatchQuality(
+                    candidates.Where(c => !usedIds.Contains(c.EmployeeId)),
+                    role,
+                    c => c.SkillsWithProficiency,
+                    c => c.Designation,
+                    c => c.AvailabilityPercent,
+                    c => c.Name)
+                .FirstOrDefault(c => SkillRequirementMatcher.ScoreProfile(
+                    role, c.SkillsWithProficiency, c.Department, c.RecentActivity) > 0);
 
             if (best is null)
             {
@@ -200,16 +209,18 @@ internal static class TeamBuildFallbackMatcher
                 continue;
             }
 
-            usedIds.Add(best.Candidate.EmployeeId);
+            usedIds.Add(best.EmployeeId);
             results.Add(new TeamBuildRoleSuggestionDto
             {
                 Role = role,
                 Status = "Matched",
-                EmployeeId = best.Candidate.EmployeeId,
-                EmployeeName = best.Candidate.Name,
-                SkillsMatch = best.Candidate.SkillsWithProficiency,
+                EmployeeId = best.EmployeeId,
+                EmployeeName = best.Name,
+                Designation = best.Designation,
+                AvailabilityPercentage = best.AvailabilityPercent,
+                SkillsMatch = best.SkillsWithProficiency,
                 Reason =
-                    $"{best.Candidate.Name} is on bench with matching skills: {best.Candidate.SkillsWithProficiency}."
+                    $"{best.Name} is on bench with matching skills: {best.SkillsWithProficiency}."
             });
         }
 

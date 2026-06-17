@@ -5,6 +5,17 @@ namespace ProjectManagementSystem.Application.Email;
 
 public static class EmailTemplates
 {
+    public static string TimesheetReminder(string employeeName, DateOnly weekStart, int reminderDay, int totalReminderDays) =>
+        $"""
+        Dear {employeeName},
+
+        This is reminder {reminderDay} of {totalReminderDays} for your timesheet for the week starting {weekStart:dd-MMM-yyyy}.
+        You were allocated to project(s) during that week, but the timesheet has not been submitted yet.
+
+        Please log in to the employee portal and submit your timesheet as soon as possible.
+        If it is not submitted after {totalReminderDays} working-day reminders, submission access will be frozen and your manager will be notified.
+        """;
+
     public static string TimesheetFreezeEmployee(string employeeName, DateOnly weekStart) =>
         $"""
         Dear {employeeName},

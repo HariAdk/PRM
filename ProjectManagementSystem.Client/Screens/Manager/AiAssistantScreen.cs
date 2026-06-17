@@ -92,11 +92,12 @@ public class AiAssistantScreen(ApiClient api) : IScreen
 
         {
             ConsoleUI.RenderTable(
-                ["#", "Name", "Skills Match", "Availability", "Recent Activity"],
+                ["#", "Name", "Designation", "Skills Match", "Availability", "Recent Activity"],
                 matches.Select((m, i) => new[]
                 {
                     (i + 1).ToString(),
                     m.Name,
+                    string.IsNullOrWhiteSpace(m.Designation) ? "—" : m.Designation,
                     m.SkillsMatch,
                     $"{m.AvailabilityPercentage}% free",
                     m.RecentActivity
@@ -168,12 +169,14 @@ public class AiAssistantScreen(ApiClient api) : IScreen
         }
 
         ConsoleUI.RenderTable(
-            ["Role", "Employee", "Skills (Proficiency)", "Status"],
+            ["Role", "Employee", "Designation", "Skills (Proficiency)", "Availability", "Status"],
             roles.Select(r => new[]
             {
                 r.Role,
                 string.IsNullOrWhiteSpace(r.EmployeeName) ? "—" : r.EmployeeName,
+                string.IsNullOrWhiteSpace(r.Designation) ? "—" : r.Designation,
                 string.IsNullOrWhiteSpace(r.SkillsMatch) ? "—" : r.SkillsMatch,
+                r.AvailabilityPercentage > 0 ? $"{r.AvailabilityPercentage}% free" : "—",
                 r.Status
             }));
 

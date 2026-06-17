@@ -21,6 +21,7 @@ public record AIMatchedEmployeeDto
 {
     public int EmployeeId { get; init; }
     public string Name { get; init; } = string.Empty;
+    public string Designation { get; init; } = string.Empty;
     public string SkillsMatch { get; init; } = string.Empty;
     public decimal AvailabilityPercentage { get; init; }
     public string RecentActivity { get; init; } = string.Empty;
@@ -45,7 +46,9 @@ public record TeamBuildRoleSuggestionDto
     public string Status { get; init; } = string.Empty;
     public int? EmployeeId { get; init; }
     public string EmployeeName { get; init; } = string.Empty;
+    public string Designation { get; init; } = string.Empty;
     public string SkillsMatch { get; init; } = string.Empty;
+    public decimal AvailabilityPercentage { get; init; }
     public string Reason { get; init; } = string.Empty;
 }
 

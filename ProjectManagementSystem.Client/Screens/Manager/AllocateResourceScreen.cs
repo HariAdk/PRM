@@ -7,7 +7,6 @@ using ProjectManagementSystem.Core.DTOs.Manager;
 
 namespace ProjectManagementSystem.Client.Screens.Manager;
 
-/// <summary>Screen 4.2 — Allocate Resource</summary>
 public class AllocateResourceScreen(ApiClient api) : IScreen
 {
     public async Task ShowAsync()
@@ -92,11 +91,12 @@ public class AllocateResourceScreen(ApiClient api) : IScreen
         }
 
         ConsoleUI.RenderTable(
-            ["#", "Name", "Skills Match", "Availability", "Recent Activity"],
+            ["#", "Name", "Designation", "Skills Match", "Availability", "Recent Activity"],
             matches.Select((m, i) => new[]
             {
                 (i + 1).ToString(),
                 m.Name,
+                string.IsNullOrWhiteSpace(m.Designation) ? "—" : m.Designation,
                 m.SkillsMatch,
                 $"{m.AvailabilityPercentage}% free",
                 m.RecentActivity
