@@ -42,7 +42,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(u => u.PasswordHash).IsRequired().HasMaxLength(255);
             entity.Property(u => u.Designation).HasMaxLength(100);
             entity.Property(u => u.IsActive).HasDefaultValue(true);
-            entity.Property(u => u.IsForcePasswordChange).HasDefaultValue(false);
+            entity.Property(u => u.PasswordExpiresAt).IsRequired();
             entity.HasIndex(u => u.Username).IsUnique();
             entity.HasIndex(u => u.Email).IsUnique();
 

@@ -4,6 +4,7 @@ using ProjectManagementSystem.Core.DTOs.User;
 using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
+using ProjectManagementSystem.Core.Helpers;
 using ProjectManagementSystem.Core.Validation;
 
 using ProjectManagementSystem.Core.Exceptions;
@@ -30,7 +31,7 @@ public class AuthService(IUserRepository userRepo, IJwtTokenService jwtTokenServ
             UserId              = creds.UserId,
             FullName            = creds.FullName,
             Role                = creds.Role,
-            ForcePasswordChange = creds.ForcePasswordChange,
+            ForcePasswordChange = PasswordExpiryHelper.RequiresChange(creds.PasswordExpiresAt),
             Token               = token
         };
     }
@@ -56,7 +57,7 @@ public class AuthService(IUserRepository userRepo, IJwtTokenService jwtTokenServ
             TemporaryPassword = request.Password
         };
 
-        return await userRepo.CreateAsync(createDto, hash, forcePasswordChange: false);
+        return await userRepo.CreateAsync(createDto, hash, PasswordExpiryHelper.ValidUntilAfterUserChange());
     }
 
     public async Task ChangePasswordAsync(int userId, ChangePasswordDto dto)
@@ -67,6 +68,6 @@ public class AuthService(IUserRepository userRepo, IJwtTokenService jwtTokenServ
         PasswordValidator.Validate(dto.NewPassword);
 
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
-        await userRepo.UpdatePasswordAsync(userId, hash, forcePasswordChange: false);
+        await userRepo.UpdatePasswordAsync(userId, hash, PasswordExpiryHelper.ValidUntilAfterUserChange());
     }
 }

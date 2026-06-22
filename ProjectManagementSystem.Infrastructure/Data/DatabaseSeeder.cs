@@ -35,7 +35,7 @@ public class DatabaseSeeder(AppDbContext db, IConfiguration configuration, ILogg
         var adminRoleId = await RoleResolver.GetRoleIdAsync(db, RoleNames.Admin);
         if (await db.Users.AnyAsync(u => u.RoleId == adminRoleId))
         {
-            logger.LogInformation("Admin account already exists ù skipping seed.");
+            logger.LogInformation("Admin account already exists ÔøΩ skipping seed.");
             return;
         }
 
@@ -48,7 +48,7 @@ public class DatabaseSeeder(AppDbContext db, IConfiguration configuration, ILogg
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(BootstrapDefaults.AdminTemporaryPassword),
             RoleId = adminRoleId,
             IsActive = true,
-            IsForcePasswordChange = true,
+            PasswordExpiresAt = DateTime.UtcNow,
             CreatedAt = now,
             UpdatedAt = now
         });
@@ -64,7 +64,7 @@ public class DatabaseSeeder(AppDbContext db, IConfiguration configuration, ILogg
     {
         if (await db.SystemConfigs.AnyAsync())
         {
-            logger.LogInformation("SystemConfig already exists ù skipping seed.");
+            logger.LogInformation("SystemConfig already exists ÔøΩ skipping seed.");
             return;
         }
 

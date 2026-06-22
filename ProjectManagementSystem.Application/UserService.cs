@@ -4,6 +4,7 @@ using ProjectManagementSystem.Core.Enums;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
 using ProjectManagementSystem.Core.Interfaces.Services;
 using ProjectManagementSystem.Core.Exceptions;
+using ProjectManagementSystem.Core.Helpers;
 using ProjectManagementSystem.Core.Validation;
 
 namespace ProjectManagementSystem.Application;
@@ -21,7 +22,7 @@ public class UserService(IUserRepository userRepo, IEmployeeRepository employeeR
             throw new BusinessRuleException(ErrorMessages.DuplicateUsernameOrEmail);
 
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.TemporaryPassword);
-        var user = await userRepo.CreateAsync(dto, hash, forcePasswordChange: true);
+        var user = await userRepo.CreateAsync(dto, hash, PasswordExpiryHelper.ImmediateChangeRequired);
 
         if (user.Role.Equals(RoleNames.Employee, StringComparison.OrdinalIgnoreCase) &&
             !await employeeRepo.UserHasEmployeeProfileAsync(user.Id))
@@ -36,7 +37,7 @@ public class UserService(IUserRepository userRepo, IEmployeeRepository employeeR
     {
         PasswordValidator.Validate(dto.NewTemporaryPassword);
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.NewTemporaryPassword);
-        await userRepo.UpdatePasswordAsync(userId, hash, forcePasswordChange: true);
+        await userRepo.UpdatePasswordAsync(userId, hash, PasswordExpiryHelper.ImmediateChangeRequired);
     }
 
     public async Task DeactivateAsync(int userId) =>

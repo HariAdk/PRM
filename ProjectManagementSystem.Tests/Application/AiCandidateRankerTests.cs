@@ -52,6 +52,47 @@ public class AiCandidateRankerTests
     }
 
     [Fact]
+    public void CompleteSkillMatches_IncludesAllQualifyingCandidatesNotOnlyAiPick()
+    {
+        var candidates = new List<SkillMatchCandidateDto>
+        {
+            new()
+            {
+                EmployeeId = 1,
+                Name = "Hari Adhikari",
+                Designation = "SE",
+                Skills = "Dotnet",
+                SkillsWithProficiency = "Dotnet (Advanced)",
+                AvailabilityPercent = 50
+            },
+            new()
+            {
+                EmployeeId = 2,
+                Name = "Other Dev",
+                Designation = "JSE",
+                Skills = "Dotnet",
+                SkillsWithProficiency = "Dotnet (Intermediate)",
+                AvailabilityPercent = 80
+            }
+        };
+
+        var aiMatches = new List<AIMatchedEmployeeDto>
+        {
+            new()
+            {
+                EmployeeId = 1,
+                Name = "Hari Adhikari",
+                Reason = "AI picked Hari only."
+            }
+        };
+
+        var completed = AiCandidateRanker.CompleteSkillMatches(
+            aiMatches, "dotnet developer", candidates);
+
+        Assert.Equal(2, completed.Count);
+    }
+
+    [Fact]
     public void DesignationRanker_RanksSseAboveSeAboveJse()
     {
         Assert.True(DesignationRanker.GetRank("SSE") > DesignationRanker.GetRank("SE"));

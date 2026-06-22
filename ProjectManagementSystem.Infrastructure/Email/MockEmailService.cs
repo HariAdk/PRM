@@ -5,9 +5,6 @@ using ProjectManagementSystem.Core.Settings;
 
 namespace ProjectManagementSystem.Infrastructure.Email;
 
-/// <summary>
-/// Writes emails as .txt files for local testing without SMTP.
-/// </summary>
 public class MockEmailService(
     IOptions<EmailSettings> options,
     ILogger<MockEmailService> logger) : IEmailService

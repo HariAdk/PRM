@@ -10,7 +10,7 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
     public string Designation { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
-    public bool IsForcePasswordChange { get; set; }
+    public DateTime PasswordExpiresAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

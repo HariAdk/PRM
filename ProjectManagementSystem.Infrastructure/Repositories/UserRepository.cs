@@ -4,6 +4,7 @@ using ProjectManagementSystem.Core.Constants;
 using ProjectManagementSystem.Core.Exceptions;
 using ProjectManagementSystem.Core.DTOs.User;
 using ProjectManagementSystem.Core.Interfaces.Repositories;
+using ProjectManagementSystem.Core.Helpers;
 using ProjectManagementSystem.Core.Validation;
 using ProjectManagementSystem.Infrastructure.Data;
 using ProjectManagementSystem.Infrastructure.Models;
@@ -25,7 +26,7 @@ public class UserRepository(AppDbContext db, IMapper mapper) : IUserRepository
         return mapper.Map<IEnumerable<UserDto>>(users);
     }
 
-    public async Task<UserDto> CreateAsync(CreateUserDto dto, string passwordHash, bool forcePasswordChange)
+    public async Task<UserDto> CreateAsync(CreateUserDto dto, string passwordHash, DateTime passwordExpiresAt)
     {
         var roleId = await RoleResolver.GetRoleIdAsync(db, dto.Role);
         var now = DateTime.UtcNow;
@@ -37,7 +38,7 @@ public class UserRepository(AppDbContext db, IMapper mapper) : IUserRepository
             Designation = string.Empty,
             RoleId = roleId,
             PasswordHash = passwordHash,
-            IsForcePasswordChange = forcePasswordChange,
+            PasswordExpiresAt = passwordExpiresAt,
             IsActive = true,
             CreatedAt = now,
             UpdatedAt = now
@@ -48,12 +49,12 @@ public class UserRepository(AppDbContext db, IMapper mapper) : IUserRepository
         return mapper.Map<UserDto>(user);
     }
 
-    public async Task UpdatePasswordAsync(int userId, string passwordHash, bool forcePasswordChange)
+    public async Task UpdatePasswordAsync(int userId, string passwordHash, DateTime passwordExpiresAt)
     {
         var user = await db.Users.FindAsync(userId)
                    ?? throw new NotFoundException(ErrorMessages.UserNotFoundById(userId));
         user.PasswordHash = passwordHash;
-        user.IsForcePasswordChange = forcePasswordChange;
+        user.PasswordExpiresAt = passwordExpiresAt;
         user.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
     }
@@ -70,10 +71,10 @@ public class UserRepository(AppDbContext db, IMapper mapper) : IUserRepository
     public async Task<bool> ExistsAsync(string username, string email) =>
         await db.Users.AnyAsync(u => u.Username == username || u.Email == email);
 
-    public async Task<(string PasswordHash, bool ForcePasswordChange, bool IsActive, int UserId, string FullName, string Role)?> GetCredentialsAsync(string username)
+    public async Task<(string PasswordHash, DateTime PasswordExpiresAt, bool IsActive, int UserId, string FullName, string Role)?> GetCredentialsAsync(string username)
     {
         var user = await db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == username);
         if (user is null) return null;
-        return (user.PasswordHash, user.IsForcePasswordChange, user.IsActive, user.Id, user.FullName, user.Role.Name);
+        return (user.PasswordHash, user.PasswordExpiresAt, user.IsActive, user.Id, user.FullName, user.Role.Name);
     }
 }

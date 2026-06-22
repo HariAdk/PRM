@@ -22,7 +22,7 @@ public class AuthServiceTests
     [Fact]
     public async Task LoginAsync_ThrowsWhenUserNotFound()
     {
-        _userRepo.Setup(r => r.GetCredentialsAsync("unknown")).ReturnsAsync((ValueTuple<string, bool, bool, int, string, string>?)null);
+        _userRepo.Setup(r => r.GetCredentialsAsync("unknown")).ReturnsAsync((ValueTuple<string, DateTime, bool, int, string, string>?)null);
 
         await Assert.ThrowsAsync<UnauthorizedAppException>(
             () => _sut.LoginAsync(new LoginRequestDto { Username = "unknown", Password = "x" }));
@@ -32,7 +32,7 @@ public class AuthServiceTests
     public async Task LoginAsync_ThrowsWhenAccountDeactivated()
     {
         _userRepo.Setup(r => r.GetCredentialsAsync("user")).ReturnsAsync(
-            ("hash", false, false, 1, "User", RoleNames.Employee));
+            ("hash", DateTime.UtcNow.AddMonths(3), false, 1, "User", RoleNames.Employee));
 
         await Assert.ThrowsAsync<UnauthorizedAppException>(
             () => _sut.LoginAsync(new LoginRequestDto { Username = "user", Password = "Pass1234" }));
@@ -43,7 +43,7 @@ public class AuthServiceTests
     {
         var hash = BCrypt.Net.BCrypt.HashPassword("CorrectPass1");
         _userRepo.Setup(r => r.GetCredentialsAsync("user")).ReturnsAsync(
-            (hash, false, true, 1, "User", RoleNames.Employee));
+            (hash, DateTime.UtcNow.AddMonths(3), true, 1, "User", RoleNames.Employee));
 
         await Assert.ThrowsAsync<UnauthorizedAppException>(
             () => _sut.LoginAsync(new LoginRequestDto { Username = "user", Password = "WrongPass1" }));
@@ -54,12 +54,25 @@ public class AuthServiceTests
     {
         var hash = BCrypt.Net.BCrypt.HashPassword("ValidPass1");
         _userRepo.Setup(r => r.GetCredentialsAsync("user")).ReturnsAsync(
-            (hash, false, true, 42, "Jane Doe", RoleNames.Employee));
+            (hash, DateTime.UtcNow.AddMonths(3), true, 42, "Jane Doe", RoleNames.Employee));
         _jwt.Setup(j => j.GenerateToken(42, "user", RoleNames.Employee)).Returns("jwt-token");
 
         var result = await _sut.LoginAsync(new LoginRequestDto { Username = "user", Password = "ValidPass1" });
 
         Assert.Equal("jwt-token", result.Token);
+    }
+
+    [Fact]
+    public async Task LoginAsync_ReturnsForcePasswordChangeWhenPasswordExpired()
+    {
+        var hash = BCrypt.Net.BCrypt.HashPassword("ValidPass1");
+        _userRepo.Setup(r => r.GetCredentialsAsync("user")).ReturnsAsync(
+            (hash, DateTime.UtcNow.AddMinutes(-1), true, 42, "Jane Doe", RoleNames.Employee));
+        _jwt.Setup(j => j.GenerateToken(42, "user", RoleNames.Employee)).Returns("jwt-token");
+
+        var result = await _sut.LoginAsync(new LoginRequestDto { Username = "user", Password = "ValidPass1" });
+
+        Assert.True(result.ForcePasswordChange);
     }
 
     [Fact]

@@ -6,6 +6,7 @@ using ProjectManagementSystem.Core.DTOs.Project;
 using ProjectManagementSystem.Core.DTOs.Timesheet;
 using ProjectManagementSystem.Core.DTOs.User;
 using ProjectManagementSystem.Core.Enums;
+using ProjectManagementSystem.Core.Helpers;
 using ProjectManagementSystem.Core.Validation;
 using ProjectManagementSystem.Infrastructure.Models;
 
@@ -17,7 +18,7 @@ public class MappingProfile : Profile
     {
         CreateMap<User, UserDto>()
             .ForMember(d => d.Role, o => o.MapFrom(s => s.Role.Name))
-            .ForMember(d => d.ForcePasswordChange, o => o.MapFrom(s => s.IsForcePasswordChange));
+            .ForMember(d => d.ForcePasswordChange, o => o.MapFrom(s => PasswordExpiryHelper.RequiresChange(s.PasswordExpiresAt)));
 
         CreateMap<Resource, EmployeeDto>()
             .ForMember(d => d.FullName, o => o.MapFrom(s => s.User.FullName))
@@ -37,7 +38,7 @@ public class MappingProfile : Profile
             .ForMember(d => d.Username, o => o.Ignore())
             .ForMember(d => d.PasswordHash, o => o.Ignore())
             .ForMember(d => d.IsActive, o => o.Ignore())
-            .ForMember(d => d.IsForcePasswordChange, o => o.Ignore())
+            .ForMember(d => d.PasswordExpiresAt, o => o.Ignore())
             .ForMember(d => d.CreatedAt, o => o.Ignore())
             .ForMember(d => d.UpdatedAt, o => o.Ignore())
             .ForMember(d => d.Role, o => o.Ignore())

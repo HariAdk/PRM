@@ -57,11 +57,12 @@ public class AiService(
             var validated = AiResponseParser.ValidateSkillMatches(parsed, request.Requirement, candidates);
             if (validated.Count > 0)
             {
-                var sorted = AiResponseParser.SortSkillMatches(validated, request.Requirement, candidates);
+                var completed = AiResponseParser.CompleteSkillMatches(
+                    validated, request.Requirement, candidates);
                 logger.LogInformation(
-                    "Skill match completed via {Provider} with {MatchCount} result(s)",
-                    provider.ProviderName, sorted.Count);
-                return new AISkillMatchResultDto { Matches = sorted, UsedFallback = false };
+                    "Skill match completed via {Provider} with {MatchCount} result(s) ({AiCount} from AI)",
+                    provider.ProviderName, completed.Count, validated.Count);
+                return new AISkillMatchResultDto { Matches = completed, UsedFallback = false };
             }
 
             if (parsed.Count > 0)

@@ -21,7 +21,7 @@ internal static class AiPromptBuilder
         Respond with valid JSON only — no markdown fences, no extra text.
         JSON shape:
         {"matches":[{"employeeId":1,"reason":"plain English explanation"}]}
-        Include at most 5 matches, best first. Only use employeeIds from the candidate list.
+        Include ALL qualifying candidates up to 5 matches (not just the single best). Best first. Only use employeeIds from the candidate list.
         """;
 
     public const string RiskSummarySystemPrompt =
@@ -227,6 +227,13 @@ internal static class AiResponseParser
                         SkillRequirementMatcher.MeetsRequirement(requirement, candidate))
             .ToList();
     }
+
+    public static List<AIMatchedEmployeeDto> CompleteSkillMatches(
+        IReadOnlyList<AIMatchedEmployeeDto> aiMatches,
+        string requirement,
+        IReadOnlyList<SkillMatchCandidateDto> candidates,
+        int maxMatches = 5) =>
+        AiCandidateRanker.CompleteSkillMatches(aiMatches, requirement, candidates, maxMatches);
 
     public static string ParseRiskSummaryResponse(string llmResponse) =>
         llmResponse.Trim().Trim('"');

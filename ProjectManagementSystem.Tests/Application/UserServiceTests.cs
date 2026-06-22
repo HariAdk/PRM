@@ -48,7 +48,7 @@ public class UserServiceTests
         };
 
         _userRepo.Setup(r => r.ExistsAsync(dto.Username, dto.Email)).ReturnsAsync(false);
-        _userRepo.Setup(r => r.CreateAsync(dto, It.IsAny<string>(), true))
+        _userRepo.Setup(r => r.CreateAsync(dto, It.IsAny<string>(), It.IsAny<DateTime>()))
             .ReturnsAsync(new UserDto { Id = 5, Username = "mgr", Role = RoleNames.Manager });
 
         var result = await _sut.CreateAsync(dto);
