@@ -12,4 +12,5 @@ public interface IAllocationRepository
     Task<IEnumerable<int>> GetEmployeeIdsAllocatedBetweenAsync(DateOnly from, DateOnly to);
     Task<AllocationDto> CreateAsync(CreateAllocationDto dto);
     Task<AllocationDto> UpdateEndDateAsync(int id, DateOnly endDate);
+    Task<int> DeactivateExpiredAsync(DateOnly asOfDate);
 }

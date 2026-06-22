@@ -19,6 +19,7 @@ public class SchedulerService(
     {
         logger.LogInformation("Scheduler run started at {Time}", DateTimeOffset.UtcNow);
 
+        await DeactivateExpiredAllocationsAsync(cancellationToken);
         await RecomputeEmployeeStatusesAsync(cancellationToken);
         await UpdateProjectHealthAsync(cancellationToken);
         await notificationService.ProcessTimesheetEscalationsAsync(cancellationToken);
@@ -26,6 +27,20 @@ public class SchedulerService(
         await MarkMissedTimesheetsAsync(cancellationToken);
 
         logger.LogInformation("Scheduler run completed at {Time}", DateTimeOffset.UtcNow);
+    }
+
+    private async Task DeactivateExpiredAllocationsAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var deactivated = await allocationRepo.DeactivateExpiredAsync(today);
+
+        if (deactivated > 0)
+        {
+            logger.LogInformation(
+                "Deactivated {Count} allocation(s) whose end date passed before {Date}",
+                deactivated, today);
+        }
     }
 
     private async Task RecomputeEmployeeStatusesAsync(CancellationToken cancellationToken)

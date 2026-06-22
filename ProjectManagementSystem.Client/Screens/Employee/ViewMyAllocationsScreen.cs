@@ -32,7 +32,7 @@ public class ViewMyAllocationsScreen(ApiClient api) : IScreen
                 ConsoleUI.FormatPercent(a.UtilisationPercent),
                 ConsoleUI.FormatDate(a.FromDate),
                 ConsoleUI.FormatDate(a.ToDate),
-                a.IsActive ? "ACTIVE" : "ENDED"
+                IsCurrentlyActive(a) ? "ACTIVE" : "ENDED"
             }),
             rightAlignColumnIndexes: [1, 2, 3]);
 
@@ -40,5 +40,14 @@ public class ViewMyAllocationsScreen(ApiClient api) : IScreen
         Console.WriteLine($"Total Utilisation: {profile.TotalUtilisation}%");
         ConsoleUI.ActionBar("[B] Back");
         ConsoleUI.PromptOption();
+    }
+
+    private static bool IsCurrentlyActive(Core.DTOs.Allocation.AllocationDto allocation)
+    {
+        if (!allocation.IsActive)
+            return false;
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return allocation.FromDate <= today && allocation.ToDate >= today;
     }
 }

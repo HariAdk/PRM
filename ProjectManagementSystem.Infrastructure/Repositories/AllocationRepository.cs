@@ -73,6 +73,22 @@ public class AllocationRepository(AppDbContext db, IMapper mapper) : IAllocation
         return (await GetByIdAsync(id))!;
     }
 
+    public async Task<int> DeactivateExpiredAsync(DateOnly asOfDate)
+    {
+        var expired = await db.Allocations
+            .Where(a => a.IsActive && a.ToDate < asOfDate)
+            .ToListAsync();
+
+        if (expired.Count == 0)
+            return 0;
+
+        foreach (var allocation in expired)
+            allocation.IsActive = false;
+
+        await db.SaveChangesAsync();
+        return expired.Count;
+    }
+
     public async Task<IEnumerable<int>> GetEmployeeIdsAllocatedBetweenAsync(DateOnly from, DateOnly to) =>
         await db.Allocations
             .Where(a => a.IsActive && a.FromDate <= to && a.ToDate >= from)

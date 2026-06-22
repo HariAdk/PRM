@@ -47,6 +47,7 @@ public class SchedulerServiceTests
             new EmployeeDto { Id = 1, Status = nameof(EmployeeStatus.Allocated) }
         });
         _allocationRepo.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(Array.Empty<AllocationDto>());
+        _allocationRepo.Setup(r => r.DeactivateExpiredAsync(It.IsAny<DateOnly>())).ReturnsAsync(0);
         _projectRepo.Setup(r => r.GetActiveAsync()).ReturnsAsync(Array.Empty<ProjectDto>());
         _allocationRepo.Setup(r => r.GetEmployeeIdsAllocatedBetweenAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync(Array.Empty<int>());
@@ -67,6 +68,7 @@ public class SchedulerServiceTests
 
         _employeeRepo.Setup(r => r.GetAllocatableResourcesAsync()).ReturnsAsync(Array.Empty<EmployeeDto>());
         _allocationRepo.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(Array.Empty<AllocationDto>());
+        _allocationRepo.Setup(r => r.DeactivateExpiredAsync(It.IsAny<DateOnly>())).ReturnsAsync(0);
         _projectRepo.Setup(r => r.GetActiveAsync()).ReturnsAsync(Array.Empty<ProjectDto>());
         _allocationRepo.Setup(r => r.GetEmployeeIdsAllocatedBetweenAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync(new[] { employeeId });
@@ -80,5 +82,23 @@ public class SchedulerServiceTests
         await _sut.RunScheduledTasksAsync();
 
         Assert.True(missedCreated);
+    }
+
+    [Fact]
+    public async Task RunScheduledTasksAsync_DeactivatesExpiredAllocations()
+    {
+        var deactivated = 0;
+        _employeeRepo.Setup(r => r.GetAllocatableResourcesAsync()).ReturnsAsync(Array.Empty<EmployeeDto>());
+        _allocationRepo.Setup(r => r.DeactivateExpiredAsync(It.IsAny<DateOnly>()))
+            .Callback<DateOnly>(_ => deactivated = 2)
+            .ReturnsAsync(2);
+        _allocationRepo.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(Array.Empty<AllocationDto>());
+        _projectRepo.Setup(r => r.GetActiveAsync()).ReturnsAsync(Array.Empty<ProjectDto>());
+        _allocationRepo.Setup(r => r.GetEmployeeIdsAllocatedBetweenAsync(It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
+            .ReturnsAsync(Array.Empty<int>());
+
+        await _sut.RunScheduledTasksAsync();
+
+        Assert.Equal(2, deactivated);
     }
 }
